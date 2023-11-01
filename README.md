@@ -16,6 +16,8 @@ The following netcdf files are viewable at http://127.0.0.1:9234
 
 The port will be randomized if not given via cli parameters.
 
+The command will also invoke the `webbrowser` library to immediately launch the announced viewable page in the default browser.
+
 ## Features
 
 The web view offers 4 major functions:
