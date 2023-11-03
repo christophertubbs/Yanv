@@ -19,21 +19,18 @@ class YanvMessage(abc.ABC, pydantic.BaseModel):
     """
     operation: str = pydantic.Field(description="The name of the operation to perform")
     message_id: typing.Optional[str] = pydantic.Field(default=None, description="A trackable ID for the message")
-    message_time: typing.Optional[datetime] = pydantic.Field(
-        default=datetime.now().astimezone(),
-        description="When this message was first encountered"
-    )
 
 
-class DataMessage(abc.ABC, YanvMessage):
+class DataMessage(YanvMessage):
     data_id: str = pydantic.Field(description="The ID of the data to pass back and forth")
+    data: typing.List[typing.Dict[str, typing.Any]] = pydantic.Field(description="The data being passed back")
     columns: typing.Optional[typing.List[str]] = pydantic.Field(
         default=None,
         description="An explicit list of columns to return"
     )
 
 
-class SpecificDataMessage(abc.ABC, DataMessage):
+class SpecificDataMessage(DataMessage):
     page_number: int = pydantic.Field(description="What page of data to retrieve")
     row_count: typing.Optional[int] = pydantic.Field(
         default=DEFAULT_ROW_COUNT,

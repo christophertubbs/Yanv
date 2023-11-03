@@ -1,6 +1,8 @@
 """
 @TODO: Put a module wide description here
 """
-from __future__ import annotations
+from .resources import register_resource_handlers
 
-import typing
+from .http import handle_index
+
+from .websocket import socket_handler

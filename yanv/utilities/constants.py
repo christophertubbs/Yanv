@@ -11,7 +11,7 @@ from yanv.utilities.base import TextValueEntry
 DEFAULT_ROW_COUNT = 10
 
 
-class Comparator(TextValueEntry, enum.Enum):
+class Comparator(enum.Enum):
     GREATER_THAN = TextValueEntry(text=">", value="GREATER_THAN")
     GREATER_THAN_OR_EQUAL_TO = TextValueEntry(text=">=", value="GREATER_THAN_OR_EQUAL_TO")
     EQUAL_TO = TextValueEntry(text="==", value="EQUAL_TO")
@@ -22,7 +22,7 @@ class Comparator(TextValueEntry, enum.Enum):
     CONTAINS = TextValueEntry(text="Contains", value="CONTAINS")
 
 
-class DataType(TextValueEntry, enum.Enum):
+class DataType(enum.Enum):
     INT = TextValueEntry(text="Integer", value="int", input_type="number")
     FLOAT = TextValueEntry(text="Floating Point", value="float", input_type="number")
     BOOL = TextValueEntry(text="Boolean", value="bool", input_type="checkbox")

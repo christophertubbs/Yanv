@@ -8,8 +8,21 @@ import typing
 
 import pydantic
 
+from ..base import DataMessage
 from ..base import YanvMessage
 
 
-class YanvResponse(abc.ABC, YanvMessage):
+class YanvResponse(YanvMessage):
     ...
+
+
+class YanvDataResponse(DataMessage):
+    ...
+
+
+class OpenResponse(YanvResponse):
+    operation: typing.Literal['connection_opened'] = pydantic.Field(default="connection_opened")
+
+
+class AcknowledgementResponse(YanvResponse):
+    operation: typing.Literal['acknowledgement'] = pydantic.Field(default="acknowledgement")

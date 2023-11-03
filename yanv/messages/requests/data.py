@@ -8,12 +8,12 @@ import typing
 
 import pydantic
 
-from ..base import DataMessage
-from ..base import YanvMessage
+from . import YanvRequest
+from .base import YanvDataRequest
 from ...utilities import DEFAULT_ROW_COUNT
 
 
-class FileSelectionRequest(YanvMessage):
+class FileSelectionRequest(YanvRequest):
     """
     A message asking for a netcdf file at a given location
     """
@@ -25,14 +25,16 @@ class FileSelectionRequest(YanvMessage):
     )
 
 
-class FilterRequest(DataMessage):
+class FilterRequest(YanvDataRequest):
     """
     Request used to filter data
     """
-    operation: typing.Literal['filter'] = pydantic.Field(description="Description stating that this is intended to filter data")
+    operation: typing.Literal['filter'] = pydantic.Field(
+        description="Description stating that this is intended to filter data"
+    )
 
 
-class PageRequest(DataMessage):
+class PageRequest(YanvDataRequest):
     """
     Request used to filter data
     """

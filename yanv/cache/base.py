@@ -9,7 +9,9 @@ import random
 import string
 
 import pandas
+import xarray
 
+from yanv.model.dataset import Dataset
 
 _DATA_ID_LENGTH = 5
 _DATA_ID_CHARACTER_SET = string.hexdigits
@@ -19,9 +21,9 @@ def generate_data_id() -> str:
     return ''.join(random.choices(population=_DATA_ID_CHARACTER_SET, k=_DATA_ID_LENGTH))
 
 
-class FrameCache(typing.Protocol):
+class DatasetCache(typing.Protocol):
     @abc.abstractmethod
-    def add(self, frame: pandas.DataFrame):
+    def add(self, data: xarray.Dataset):
         ...
 
     @abc.abstractmethod
@@ -45,8 +47,16 @@ class FrameCache(typing.Protocol):
         ...
 
     @abc.abstractmethod
-    def get(self, key: str, default: pandas.DataFrame = None) -> typing.Optional[pandas.DataFrame]:
+    def get(self, key: str) -> typing.Optional[xarray.Dataset]:
+        ...
+
+    @abc.abstractmethod
+    def get_frame(self, key: str) -> typing.Optional[pandas.DataFrame]:
+        ...
+
+    @abc.abstractmethod
+    def get_information(self, key: str) -> typing.Optional[Dataset]:
         ...
 
 
-CACHE_TYPE = typing.TypeVar("CACHE_TYPE", bound=FrameCache, covariant=True)
+CACHE_TYPE = typing.TypeVar("CACHE_TYPE", bound=DatasetCache, covariant=True)

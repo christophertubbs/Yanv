@@ -8,8 +8,13 @@ import typing
 
 import pydantic
 
+from ..base import DataMessage
 from ..base import YanvMessage
 
 
-class YanvRequest(abc.ABC, YanvMessage):
+class YanvRequest(YanvMessage):
+    ...
+
+
+class YanvDataRequest(DataMessage):
     ...

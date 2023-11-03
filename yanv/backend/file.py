@@ -28,9 +28,8 @@ class FileBackend(BaseBackend):
             del self.__entry_record[path]
 
         dataset = xarray.load_dataset(path)
-        dataframe = dataset.to_dataframe()
 
-        data_id = self.cache.add(dataframe)
+        data_id = self.cache.add(dataset)
         self.__entry_record[path] = data_id
 
         return data_id

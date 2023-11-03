@@ -18,8 +18,8 @@ class BaseBackend(typing.Protocol):
     def get_default_cache(cls) -> CACHE_TYPE:
         return InMemoryFrameCache()
 
-    @abc.abstractmethod
     @property
+    @abc.abstractmethod
     def cache(self) -> CACHE_TYPE:
         ...
 
