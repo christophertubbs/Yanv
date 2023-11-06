@@ -3,12 +3,25 @@
 """
 from __future__ import annotations
 
+import inspect
 import typing
+import re
 
+import numpy
 import pydantic
 import xarray
 
 from yanv.model.dimension import Dimension
+
+STRING_PATTERN = re.compile(r"S\d+$")
+
+
+def make_value_serializable(value: typing.Any):
+    if isinstance(value, numpy.ndarray):
+        value = value.tolist()
+    elif hasattr(value, "item") and inspect.isroutine(value.item):
+        value = value.item()
+    return value
 
 
 class Variable(pydantic.BaseModel):
@@ -22,24 +35,57 @@ class Variable(pydantic.BaseModel):
         variables: typing.List[Variable] = list()
 
         for variable_name, variable in dataset.data_vars.items():
+            kwargs = dict(
+                name=variable_name,
+                datatype=str(variable.dtype),
+                count=variable.size,
+                attributes={
+                    key: make_value_serializable(value)
+                    for key, value in variable.attrs.items()
+                },
+                dimensions=[
+                    dimensions[name]
+                    for name in variable.dims
+                ]
+            )
+
+            if 'long_name' in variable.attrs.keys():
+                kwargs['long_name'] = variable.attrs['long_name']
+
+            if 'units' in variable.attrs.keys():
+                kwargs['units'] = variable.attrs['units']
+
             variables.append(
-                cls(
-                    name=variable_name,
-                    datatype=str(variable.dtype),
-                    attributes={
-                        key: value
-                        for key, value in variable.attrs.items()
-                    },
-                    dimensions=[
-                        dimensions[name]
-                        for name in variable.dims
-                    ]
-                )
+                cls(**kwargs)
             )
 
         return variables
 
     name: str
     datatype: str
-    attributes: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default_factory=dict)
+    count: int
     dimensions: typing.List[Dimension] = pydantic.Field(default_factory=list)
+    long_name: typing.Optional[str] = pydantic.Field(default=None)
+    units: typing.Optional[str] = pydantic.Field(default=None)
+    attributes: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default_factory=dict)
+
+    def is_string(self) -> bool:
+        return STRING_PATTERN.search(self.datatype) is not None
+
+    def __str__(self):
+        representation = f"{'string' if self.is_string() else self.datatype} "
+        representation += self.long_name if self.long_name else self.name
+
+        if self.dimensions:
+            representation += f"({', '.join([str(dimension) for dimension in self.dimensions])})"
+
+        if self.units:
+            representation += f" => {self.units}"
+
+        return representation
+
+    def __getitem__(self, key: str) -> typing.Any:
+        return self.attributes[key]
+
+    def __repr__(self):
+        return self.__str__()

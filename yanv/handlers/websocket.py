@@ -10,6 +10,7 @@ import string
 import typing
 from dataclasses import dataclass
 from dataclasses import field
+from pprint import pprint
 
 import pandas
 from aiohttp import WSMessage
@@ -17,20 +18,23 @@ from aiohttp import web
 
 from yanv.backend.base import BaseBackend
 from yanv.backend.file import FileBackend
+from yanv.messages.base import YanvMessage
+from yanv.messages.requests import FileSelectionRequest
 from yanv.messages.requests import MasterRequest
 from yanv.messages.requests import YanvRequest
 from yanv.messages.responses import ErrorResponse
 from yanv.messages.responses import YanvResponse
 from yanv.messages.responses.base import AcknowledgementResponse
 from yanv.messages.responses.base import OpenResponse
+from yanv.messages.responses.data import YanvDataResponse
 
 from yanv.messages.responses.error import unrecognized_message_response
 
 CONNECTION_ID_LENGTH = 5
 CONNECTION_ID_CHARACTER_SET = string.hexdigits
 
-
-RESPONSE_TYPE = typing.TypeVar("RESPONSE_TYPE", bound=YanvResponse, covariant=True)
+REQUEST_TYPE = typing.TypeVar("REQUEST_TYPE", bound=YanvRequest, covariant=True)
+RESPONSE_TYPE = typing.TypeVar("RESPONSE_TYPE", bound=YanvMessage, covariant=True)
 
 
 @dataclass
@@ -39,15 +43,29 @@ class SocketState:
     frames: typing.Dict[str, pandas.DataFrame] = field(default_factory=list)
 
 
-HANDLER = typing.Callable[[YanvRequest, SocketState], YanvResponse]
+HANDLER = typing.Callable[[REQUEST_TYPE, SocketState], RESPONSE_TYPE]
 
 
-MESSAGE_HANDLERS: typing.Mapping[typing.Type[YanvRequest], HANDLER] = {
+def load_file(request: FileSelectionRequest, state: SocketState) -> YanvDataResponse:
+    new_id = state.backend.load(request.path)
+    uploaded_data = state.backend.cache.get_information(new_id)
 
+    response = YanvDataResponse(
+        operation=request.operation,
+        data_id=new_id,
+        data=uploaded_data,
+        message_id=request.message_id
+    )
+
+    return response
+
+
+MESSAGE_HANDLERS: typing.Mapping[typing.Type[REQUEST_TYPE], typing.Union[HANDLER, typing.Sequence[HANDLER]]] = {
+    FileSelectionRequest: load_file
 }
 
 
-def default_message_handler(request: YanvRequest) -> RESPONSE_TYPE:
+def default_message_handler(request: YanvRequest, state: SocketState) -> RESPONSE_TYPE:
     return AcknowledgementResponse(message_id=request.message_id)
 
 
@@ -56,12 +74,22 @@ async def handle_message(connection: web.WebSocketResponse, message: typing.Unio
         message = json.loads(message)
 
     try:
-        request_wrapper = MasterRequest.model_validate(message)
+        request_wrapper = MasterRequest.model_validate({"request": message})
         request: YanvRequest = request_wrapper.request
         handler = MESSAGE_HANDLERS.get(type(request), default_message_handler)
-
+        response = None
         try:
-            response = handler(request.request, state)
+            if isinstance(handler, typing.Sequence):
+                handlers: typing.Sequence[HANDLER] = handler
+            else:
+                handlers: typing.Sequence[HANDLER] = [handler]
+
+            for function in handlers:
+                response = function(request, state)
+
+            if response is None:
+                response = default_message_handler(request, state)
+
         except BaseException as error:
             logging.error(
                 f"An error occurred while handling a `{type(request)}` message",
@@ -73,7 +101,10 @@ async def handle_message(connection: web.WebSocketResponse, message: typing.Unio
                 message_type=request.operation,
                 message=f"An error occurred while handling a `{type(request)}` message: {str(error)}"
             )
-    except:
+    except Exception as error:
+        print(error)
+        print("Could not deserialize incoming message:")
+        pprint(message)
         response = unrecognized_message_response()
 
     await connection.send_json(response.model_dump())

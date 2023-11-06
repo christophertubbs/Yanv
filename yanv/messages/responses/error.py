@@ -11,8 +11,11 @@ from ..base import YanvMessage
 
 
 class ErrorResponse(YanvMessage):
-    message_type: typing.Optional[str] = pydantic.Field(description="The name of the type of message that caused the error")
     error_message: str = pydantic.Field(description="A description of the error")
+    message_type: typing.Optional[str] = pydantic.Field(
+        default=None,
+        description="The name of the type of message that caused the error"
+    )
 
 
 def invalid_message_response() -> ErrorResponse:

@@ -23,7 +23,6 @@ class YanvMessage(abc.ABC, pydantic.BaseModel):
 
 class DataMessage(YanvMessage):
     data_id: str = pydantic.Field(description="The ID of the data to pass back and forth")
-    data: typing.List[typing.Dict[str, typing.Any]] = pydantic.Field(description="The data being passed back")
     columns: typing.Optional[typing.List[str]] = pydantic.Field(
         default=None,
         description="An explicit list of columns to return"

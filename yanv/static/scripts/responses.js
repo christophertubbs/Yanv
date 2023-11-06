@@ -1,6 +1,9 @@
+import {Dataset} from "./model.js";
+
 export class OpenResponse {
     constructor (payload) {
-        debugger;
+        console.log("Connected")
+        console.log(payload)
     }
 }
 
@@ -15,13 +18,20 @@ export class AcknowledgementResponse {
 }
 
 export class DataResponse {
+    operation
     messageID;
+    /**
+     * @member {Dataset}
+     */
     data;
     columns;
     rowCount;
     filters;
+    data_id
 
-    constructor ({message_id, data, columns, rowCount, filters}) {
+    constructor ({operation, data_id, message_id, data, columns, rowCount, filters}) {
+        this.data_id = data_id;
+        this.operation = operation;
         this.messageID = message_id;
         this.data = data;
         this.columns = columns;
@@ -29,3 +39,11 @@ export class DataResponse {
         this.filters = filters;
     }
 }
+
+if (!Object.hasOwn(window, "yanv")) {
+    window.yanv = {};
+}
+
+window.yanv.DataResponse = DataResponse;
+window.yanv.AcknowledgementResponse = AcknowledgementResponse;
+window.yanv.OpenResponse = OpenResponse;

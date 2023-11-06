@@ -1,4 +1,15 @@
+import {Request} from "./requests.js"
 import {OpenResponse, DataResponse, AcknowledgementResponse} from "./responses.js";
+const print = console.log
+
+function sleep(ms, message) {
+    if (message === null || message === undefined) {
+        message = "Waiting...";
+    }
+
+    console.log(message);
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export class YanvClient {
     /**
@@ -11,12 +22,12 @@ export class YanvClient {
     #payloadTypes = {
         "connection_opened": OpenResponse,
         "data": DataResponse,
-        "acknowledgement": AcknowledgementResponse
+        "acknowledgement": AcknowledgementResponse,
+        "load": DataResponse
     }
     
     constructor (path) {
         this.#id = this.#generateID();
-        this.connect(path)
     }
     
     addHandler = (event, operation, action) => {
@@ -60,6 +71,28 @@ export class YanvClient {
 
         return generatedID;
     }
+
+    /**
+     *
+     * @param payload {Request|object}
+     */
+    send = async (payload) => {
+        if (payload instanceof Request) {
+            payload = payload.getRawPayload();
+        }
+
+        if (!Object.hasOwn(payload, "message_id")) {
+            payload['message_id'] = this.#generateID()
+        }
+
+        const rawPayload = JSON.stringify(payload, null, 4)
+
+        while (this.#socket.readyState === 0) {
+            await sleep(1000);
+        }
+
+        this.#socket.send(rawPayload);
+    }
     
     sendRawMessage = (message) => {
         const payload = {
@@ -75,7 +108,7 @@ export class YanvClient {
         return `ws://${location.host}/${path}`;
     }
 
-    connect = (path) => {
+    connect = async (path) => {
         this.#socket?.close()
         
         const url = this.#build_websocket_url(path);
@@ -84,6 +117,10 @@ export class YanvClient {
         this.#socket.onopen = this.#handleOpen;
         this.#socket.onclose = this.#handleClose;
         this.#socket.onerror = this.#handleError;
+
+        while (this.#socket.readyState === 0) {
+            await sleep(1000);
+        }
     }
 
     /**
@@ -91,7 +128,6 @@ export class YanvClient {
      * @param event {MessageEvent}
      */
     #handleMessage = (event) => {
-        debugger;
         const payload = event.data;
         console.log(payload);
 
@@ -119,4 +155,8 @@ export class YanvClient {
     }
 }
 
-document.YanvClient = YanvClient;
+if (!Object.hasOwn(window, "yanv")) {
+    window.yanv = {};
+}
+
+window.yanv.YanvClient = YanvClient;
