@@ -1,6 +1,6 @@
 import {Request} from "./requests.js"
 import {OpenResponse, DataResponse, AcknowledgementResponse} from "./responses.js";
-const print = console.log
+import {DatasetView} from "./views/metadata.js";
 
 function sleep(ms, message) {
     if (message === null || message === undefined) {
@@ -26,11 +26,19 @@ export class YanvClient {
         "load": DataResponse
     }
     
-    constructor (path) {
+    constructor () {
         this.#id = this.#generateID();
+
+        this.addHandler(
+            "load",
+            function(payload) {
+                const view = new DatasetView(payload);
+                view.render("#content")
+            }
+        )
     }
     
-    addHandler = (event, operation, action) => {
+    addHandler = (operation, action) => {
         if (!Object.hasOwn(this.#handlers, operation)) {
             this.#handlers[operation] = [];
         }
@@ -77,21 +85,29 @@ export class YanvClient {
      * @param payload {Request|object}
      */
     send = async (payload) => {
+        let rawPayload;
         if (payload instanceof Request) {
-            payload = payload.getRawPayload();
+            rawPayload = payload.getRawPayload();
+        }
+        else {
+            rawPayload = payload;
         }
 
-        if (!Object.hasOwn(payload, "message_id")) {
-            payload['message_id'] = this.#generateID()
+        if (!Object.hasOwn(rawPayload, "message_id")) {
+            rawPayload['message_id'] = this.#generateID()
         }
 
-        const rawPayload = JSON.stringify(payload, null, 4)
+        const payloadText = JSON.stringify(rawPayload, null, 4)
 
         while (this.#socket.readyState === 0) {
             await sleep(1000);
         }
 
-        this.#socket.send(rawPayload);
+        this.#socket.send(payloadText);
+
+        if (payload instanceof Request) {
+            payload.sent();
+        }
     }
     
     sendRawMessage = (message) => {
@@ -130,14 +146,29 @@ export class YanvClient {
     #handleMessage = (event) => {
         const payload = event.data;
         console.log(payload);
-
+        let deserializedPayload
         try {
-            const deserializedPayload = JSON.parse(payload);
-
-            const operation = deserializedPayload.operation;
-            this.#handle(operation, deserializedPayload);
+            deserializedPayload = JSON.parse(payload);
         } catch (e) {
             console.log("Could not deserialize message from server");
+            console.error(e);
+            return;
+        }
+
+        let operation;
+        try {
+            operation = deserializedPayload.operation;
+        } catch (e) {
+            console.error("Could not find the operation on the deserialized payload");
+            console.error(e);
+            return
+        }
+
+        try {
+            this.#handle(operation, deserializedPayload);
+        } catch (e) {
+            console.error("An error occurred while trying to handle an event")
+            console.error(e);
         }
     }
 
@@ -156,6 +187,7 @@ export class YanvClient {
 }
 
 if (!Object.hasOwn(window, "yanv")) {
+    console.log("Creating a new yanv namespace");
     window.yanv = {};
 }
 

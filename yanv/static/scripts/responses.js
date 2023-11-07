@@ -41,6 +41,7 @@ export class DataResponse {
 }
 
 if (!Object.hasOwn(window, "yanv")) {
+    console.log("Creating a new yanv namespace");
     window.yanv = {};
 }
 

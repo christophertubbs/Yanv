@@ -9,6 +9,7 @@ import typing
 
 from aiohttp import web
 
+from handlers import navigate
 from yanv.handlers import handle_index
 from yanv.handlers import register_resource_handlers
 from yanv.handlers import socket_handler
@@ -23,6 +24,7 @@ def main(port: int, *argv) -> typing.NoReturn:
 
     application.add_routes([
         web.get("/get", handler=handle_index),
+        web.get("/navigate", handler=navigate),
         web.get("/ws", handler=socket_handler)
     ])
 

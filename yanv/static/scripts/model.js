@@ -94,6 +94,7 @@ export class Dataset {
 }
 
 if (!Object.hasOwn(window, "yanv")) {
+    console.log("Creating a new yanv namespace");
     window.yanv = {};
 }
 

@@ -1,4 +1,10 @@
 export class Request {
+    send_handlers;
+
+    constructor () {
+        this.send_handlers = [];
+    }
+
     getRawPayload = () => {
         throw new Error("getRawPayload was not implemented for this request");
     }
@@ -6,6 +12,16 @@ export class Request {
     getOperation = () => {
         throw new Error("getOperation was not implemented for this request");
     }
+
+    sent = () => {
+        for (let handler of this.send_handlers) {
+            handler();
+        }
+    }
+
+    onSend = (handler) => {
+        this.send_handlers.push(handler);
+    };
 }
 
 export class FileSelectionRequest extends Request {
@@ -132,6 +148,7 @@ export class PageRequest extends DataRequest {
 }
 
 if (!Object.hasOwn(window, "yanv")) {
+    console.log("Creating a new yanv namespace");
     window.yanv = {};
 }
 

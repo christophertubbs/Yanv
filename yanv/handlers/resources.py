@@ -8,8 +8,18 @@ from dataclasses import dataclass
 
 from aiohttp import web
 
+from yanv.utilities import mimetypes
+
 RESOURCE_DIRECTORY = pathlib.Path(__file__).parent.parent / "static"
 SCRIPT_DIRECTORY = RESOURCE_DIRECTORY / "scripts"
+STYLE_DIRECTORY = RESOURCE_DIRECTORY / "style"
+
+RESOURCE_MAP = {
+    "scripts": SCRIPT_DIRECTORY,
+    "script": SCRIPT_DIRECTORY,
+    "style": STYLE_DIRECTORY,
+    "styles": STYLE_DIRECTORY,
+}
 
 
 @dataclass
@@ -24,22 +34,42 @@ class RouteInfo:
         ])
 
 
-async def get_script(request: web.Request) -> web.Response:
-    script_name = request.match_info['name']
+def get_content_type(resource_type: str, filename: pathlib.Path) -> typing.Optional[str]:
+    return mimetypes.get(filename.suffix)
 
-    script_path = SCRIPT_DIRECTORY / script_name
 
-    if script_path.exists():
-        with open(script_path) as script_file:
+def get_resource_directory(resource_type: str) -> pathlib.Path:
+    return RESOURCE_MAP[resource_type]
+
+
+async def get_resource(request: web.Request) -> web.Response:
+    resource_type: str = request.match_info['resource_type']
+
+    if resource_type not in RESOURCE_MAP:
+        return web.HTTPNotAcceptable(text=f"{resource_type} is not a valid type of resource")
+
+    resource_name: str = request.match_info['name']
+    resource_directory = get_resource_directory(resource_type)
+    resource_path = resource_directory / resource_name
+
+    if resource_path.exists():
+        content_type = get_content_type(resource_type, resource_path)
+
+        if content_type.startswith("image") or content_type.startswith("video"):
             return web.Response(
-                text=script_file.read(),
-                content_type="application/javascript"
+                body=resource_path.read_bytes(),
+                content_type=content_type
+            )
+        else:
+            return web.Response(
+                text=resource_path.read_text(),
+                content_type=content_type
             )
 
-    return web.HTTPNotFound(text=f"No script was found at '{script_path}'")
+    return web.HTTPNotFound(text=f"No resource was found at '{resource_path}'")
 
 RESOURCE_ROUTES = [
-    RouteInfo(path="/scripts/{name}", handler=get_script, name="get_script")
+    RouteInfo(path="/{resource_type}/{name:.*}", handler=get_resource, name="get_resource"),
 ]
 
 

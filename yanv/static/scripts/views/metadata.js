@@ -27,13 +27,84 @@ export class DatasetView {
         this.dataset = new Dataset(data.data);
     }
 
+    /**
+     *
+     * @param rootSelector {string}
+     */
     render = (rootSelector) => {
+        /**
+         *
+         * @type {jQuery}
+         */
+        const root = $(rootSelector);
 
+        if (!root) {
+            throw new Error(`No elements could be found at '${rootSelector}'`)
+        }
+
+        /**
+         *
+         * @type {HTMLDivElement}
+         */
+        const container = document.createElement("div");
+        container.id = this.data_id;
+
+        const containerCSSClasses = [
+            `yanv-container`,
+            `yanv-dataset`
+        ]
+
+        container.className = containerCSSClasses.join(" ");
+        container.attributes['data-dataset'] = this.data_id;
+
+        const renderedDimensions = this.renderDimensions(this.dataset.dimensions);
+
+        if (renderedDimensions) {
+            container.appendChild(renderedDimensions);
+        }
+
+        const renderedVariables = this.renderVariables(this.dataset.variables);
+
+        if (renderedVariables) {
+            container.appendChild(renderedVariables);
+        }
+
+        const globalAttributes = this.#renderAttributesTable(
+            this.dataset.attributes,
+            true,
+            null
+        )
+
+        if (globalAttributes) {
+            const globalAttributesField = document.createElement("fieldset");
+            globalAttributesField.id = `${this.data_id}-global-fields`;
+            const cssClasses = [
+                "yanv-global-attributes-fieldset"
+            ];
+            globalAttributesField.className = cssClasses.join(" ");
+
+            const globalAttributeLegend = document.createElement("legend")
+            globalAttributeLegend.id = `${this.data_id}-global-attributes-legend`
+            const legendCSSClasses = [
+                'yanv-legend',
+                'yanv-global-attributes-legend'
+            ]
+            globalAttributeLegend.className = legendCSSClasses.join(" ");
+            globalAttributeLegend.innerText = "Global Attributes"
+            globalAttributesField.appendChild(globalAttributeLegend);
+            globalAttributesField.appendChild(globalAttributes);
+            container.appendChild(globalAttributesField);
+        }
+
+        root.append(container)
+
+        $(".yanv-accordion").accordion();
     }
 
     /**
      *
      * @param dimensions {Dimension[]}
+     * @returns {HTMLFieldSetElement}
      */
     renderDimensions = (dimensions) => {
         const dimensionsID = `${this.data_id}-dimensions`;
@@ -43,7 +114,7 @@ export class DatasetView {
          */
         const dimensionsFieldset = document.createElement("fieldset")
         dimensionsFieldset.id = dimensionsID;
-        dimensionsFieldset.className = "dimensions-fields";
+        dimensionsFieldset.className = "yanv-dimensions-fields";
         dimensionsFieldset.name = "Dimensions";
 
         const legend = document.createElement("legend");
@@ -55,7 +126,7 @@ export class DatasetView {
          * @type {HTMLTableElement}
          */
         const dimensionsTable = document.createElement("table")
-        dimensionsTable.className = "dimensions-table"
+        dimensionsTable.className = "yanv-dimensions-table"
         dimensionsTable.id = `${dimensionsID}-table`;
 
         let columns = [];
@@ -67,7 +138,7 @@ export class DatasetView {
             let thisDimensionsColumns = Object.keys(dimension.attributes);
 
             if (isFirstDimension) {
-                columns += thisDimensionsColumns;
+                columns = thisDimensionsColumns;
                 isFirstDimension = false;
                 continue;
             }
@@ -82,7 +153,7 @@ export class DatasetView {
             for (let column of columnsToRemove) {
                 let columnIndex = columns.indexOf(column);
                 let newBeginning = columns.splice(0, columnIndex);
-                columns = newBeginning + columns.splice(1);
+                columns = newBeginning.concat(columns.splice(1));
             }
         }
 
@@ -91,7 +162,7 @@ export class DatasetView {
          */
         const header = document.createElement("tr")
         header.id = `${dimensionsID}-header`;
-        header.className = "header-row dimensions-header"
+        header.className = "yanv-header-row yanv-dimensions-header"
 
         const nameHeaderCell = document.createElement("th");
         nameHeaderCell.textContent = "Name";
@@ -124,8 +195,9 @@ export class DatasetView {
             let row = document.createElement("tr")
             row.id = `${dimensionsID}-${dimension.name}`;
             let classList = [
-                rowID % 2 === 0 ? "odd" : "even",
-                "dimensions-row"
+                `yanv-${rowID % 2 === 0 ? "odd" : "even"}-row`,
+                'yanv-row',
+                "yanv-dimension"
             ]
             row.className = classList.join(" ");
 
@@ -177,15 +249,18 @@ export class DatasetView {
     /**
      *
      * @param variables {Variable[]}
+     * @returns {HTMLDivElement}
      */
     renderVariables = (variables) => {
         /**
          *
          * @type {HTMLDivElement}
          */
-        const accordion = document.create("div");
+        const accordion = document.createElement("div");
         accordion.id = `${this.data_id}-accordion`;
-        accordion.className = "variable-accordion"
+        accordion.className = "yanv-variable-accordion yanv-accordion"
+
+        const notGlobal = false;
 
         for (let variable of variables) {
             const variableID = `${this.data_id}-${variable.name}`;
@@ -196,7 +271,7 @@ export class DatasetView {
              */
             let variableHeader = document.createElement("h3")
             variableHeader.id = `${variableID}-bar`;
-            variableHeader.className = "variable-bar";
+            variableHeader.className = "yanv-variable-bar";
 
             let variableName = `${variable.datatype} ${variable.name}`;
 
@@ -218,58 +293,30 @@ export class DatasetView {
             let variableContents = document.createElement("div");
             variableContents.id = `${variableID}-contents`;
 
+            const toolbar = document.createElement("div");
+            toolbar.id = `${variableID}-toolbar`;
+            const toolbarClassNames = [
+                "yanv-toolbar",
+                "yanv-variable-toolbar"
+            ];
 
-            let attributesTable = document.createElement("table");
-            attributesTable.id = `${variableID}-attributes`;
-            attributesTable.className = `${variableID} variable-attributes`;
+            toolbar.className = toolbarClassNames.join(" ");
 
-            let rowID = 0;
+            /**
+             *
+             * @type {HTMLButtonElement}
+             */
+            let plotButton = document.createElement("button")
+            plotButton.id = `plot-${variableID}`
+            plotButton.innerText = "Plot";
 
-            for (let [key, value] of Object.entries(variable.attributes)) {
-                let attributeID = `${variableID}-${key}`;
+            toolbar.appendChild(plotButton);
 
-                /**
-                 *
-                 * @type {HTMLTableRowElement}
-                 */
-                let row = document.createElement("tr")
-                let cssClasses = [
-                    `${rowID % 2 === 0 ? "even" : "odd"}-row`,
-                    "variable-attribute"
-                ];
+            variableContents.appendChild(toolbar);
 
-                row.className = cssClasses.join(" ");
-                row.id = attributeID;
-
-                row.attributes['data-key'] = key;
-                row.attributes['data-value'] = value;
-                row.attributes['data-row'] = rowID;
-
-                /**
-                 * @type {HTMLTableCellElement}
-                 */
-                let keyCell = document.createElement("td");
-                keyCell.className = "attribute-name";
-                keyCell.id = `${attributeID}-key`;
-                keyCell.textContent = key;
-
-                row.appendChild(keyCell);
-
-                /**
-                 * @type {HTMLTableCellElement}
-                 */
-                let valueCell = document.createElement("td");
-                valueCell.className = "attribute-value";
-                valueCell.id = `${attributeID}-value`
-                valueCell.textContent = value;
-
-                row.appendChild(valueCell);
-
-                attributesTable.appendChild(row);
-                rowID++;
-            }
-
-            variableContents.appendChild(attributesTable);
+            variableContents.appendChild(
+                this.#renderAttributesTable(variable.attributes, notGlobal, variableID)
+            );
             accordion.appendChild(variableContents);
         }
 
@@ -279,9 +326,106 @@ export class DatasetView {
     /**
      *
      * @param attributes {{string: any}}
+     * @param isGlobal {boolean}
+     * @param variableID {string|undefined|null}
+     * @returns {HTMLTableElement|HTMLParagraphElement}
      */
-    renderAttributes = (attributes) => {
+    #renderAttributesTable = (attributes, isGlobal, variableID) => {
+        if (isGlobal === null || isGlobal === undefined) {
+            isGlobal = false;
+        }
 
+        const scope = isGlobal ? "global" : "variable";
+
+        if (!variableID && !isGlobal) {
+            throw new Error(
+                "An attributes table cannot be rendered - a table is marked as variable level yet has not variable ID"
+            );
+        }
+        else if (!variableID) {
+            variableID = "global";
+        }
+
+        const variableName = isGlobal ? null : variableID.replace(`${this.data_id}-`, "")
+
+        if (attributes === null || attributes === undefined || Object.keys(attributes).length === 0) {
+            /**
+             *
+             * @type {HTMLParagraphElement}
+             */
+            const lackOfAttributesParagraph = document.createElement("p");
+
+            if (isGlobal) {
+                lackOfAttributesParagraph.innerText = `Dataset ${this.data_id} has no global attributes`;
+            }
+            else {
+                lackOfAttributesParagraph.innerText = `The ${variableName} variable has no attributes`;
+            }
+
+            return lackOfAttributesParagraph;
+        }
+
+        let attributesTable = document.createElement("table");
+        attributesTable.id = `${variableID}-attributes`;
+
+        const tableCSSClasses = [
+            `yanv-table`,
+            "yanv-attributes",
+            `yanv-${scope}-attributes`
+        ];
+
+        attributesTable.className = tableCSSClasses.join(" ");
+
+        let rowID = 0;
+
+        for (let [key, value] of Object.entries(attributes)) {
+            let attributeID = `${variableID}-${key}`;
+
+            /**
+             *
+             * @type {HTMLTableRowElement}
+             */
+            let row = document.createElement("tr")
+            let cssClasses = [
+                `yanv-${rowID % 2 === 0 ? "even" : "odd"}-row`,
+                'yanv-row',
+                'yanv-attribute',
+                `yanv-${scope}-attribute`
+            ];
+
+            row.className = cssClasses.join(" ");
+            row.id = attributeID;
+
+            row.attributes['data-key'] = key;
+            row.attributes['data-value'] = value;
+            row.attributes['data-row'] = rowID;
+
+            /**
+             * @type {HTMLTableCellElement}
+             */
+            let keyCell = document.createElement("td");
+            keyCell.className = `yanv-attribute-name yanv-${scope}-attribute-name`;
+            keyCell.id = `${attributeID}-key`;
+            keyCell.textContent = key;
+
+            row.appendChild(keyCell);
+
+            /**
+             * @type {HTMLTableCellElement}
+             */
+            let valueCell = document.createElement("td");
+            valueCell.className = `yanv-attribute-value yanv-${scope}-attribute-value`;
+            valueCell.id = `${attributeID}-value`
+            valueCell.textContent = value;
+            valueCell.attributes['data-attribute'] = key;
+
+            row.appendChild(valueCell);
+
+            attributesTable.appendChild(row);
+            rowID++;
+        }
+
+        return attributesTable;
     }
 }
 
