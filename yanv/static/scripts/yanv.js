@@ -1,3 +1,5 @@
+const PREVIOUS_PATH_KEY = "previousPath";
+
 async function initializeClient() {
     /**
      *
@@ -7,12 +9,6 @@ async function initializeClient() {
 
     yanv.client.addHandler("load", closeLoadingModal);
     await yanv.client.connect("ws");
-}
-
-async function askForData() {
-    // FOR TESTING PURPOSES - REMOVE ASAP
-    const nc_url = "/Users/christopher.tubbs/PycharmProjects/Yanv/test/resources/test.nc"
-    await getData(nc_url)
 }
 
 async function getData(path) {
@@ -42,7 +38,9 @@ function initializeOpenPath() {
         height: 150
     })
 
-    $("input#open-path").autocomplete({
+    const openPathInput = $("input#open-path");
+
+    openPathInput.autocomplete({
         source: "navigate"
     });
 
@@ -57,7 +55,6 @@ function initializeModals() {
 }
 
 async function initialize() {
-
     initializeModals();
     $("#loading-progress-bar").progressbar({value: false});
     $("button").button();
@@ -74,12 +71,13 @@ async function initialize() {
 
 async function loadDataClicked(event) {
     const url = $("input#open-path").val();
+    $("#load-dialog").dialog("close");
     await getData(url);
+    localStorage.setItem(PREVIOUS_PATH_KEY, url);
 }
 
 document.addEventListener("DOMContentLoaded", async function(event) {
     await initialize();
-    //await askForData();
 });
 
 function closeLoadingModal() {
@@ -99,9 +97,11 @@ function closeNotImplementedModal() {
 }
 
 function launchLoadDialog() {
-    /**
-     *
-     * @type {HTMLDialogElement}
-     */
+    const previousPath = localStorage[PREVIOUS_PATH_KEY];
+
+    if (previousPath) {
+        $("input#open-path").val(previousPath);
+    }
+
     $("#load-dialog").dialog("open")
 }
