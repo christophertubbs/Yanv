@@ -1,6 +1,7 @@
 
 import {DataResponse} from "../responses.js";
 import {Dataset} from "../model.js";
+import {createFieldSet, createSimpleList, createTable} from "../elements.js";
 
 export class DatasetView {
     /**
@@ -29,9 +30,36 @@ export class DatasetView {
 
     /**
      *
-     * @param rootSelector {string}
+     * @param tabSelector {string}
      */
-    render = (rootSelector) => {
+    addTab = (tabSelector) => {
+        const tabs = $(tabSelector);
+
+        if ($(`${tabSelector} li#${this.data_id}-tab`).length === 0) {
+            /**
+             * @type {HTMLLIElement}
+             */
+            const tab = document.createElement("li")
+
+            /**
+             *
+             * @type {HTMLAnchorElement}
+             */
+            const tabLink = document.createElement("a")
+            tabLink.href = `#${this.data_id}`;
+            tabLink.innerText = this.data_id;
+
+            tab.appendChild(tabLink);
+            tabs.append(tab);
+        }
+    }
+
+    /**
+     *
+     * @param rootSelector {string}
+     * @param tabSelector {string}
+     */
+    render = (rootSelector, tabSelector) => {
         /**
          *
          * @type {jQuery}
@@ -39,7 +67,11 @@ export class DatasetView {
         const root = $(rootSelector);
 
         if (!root) {
-            throw new Error(`No elements could be found at '${rootSelector}'`)
+            throw new Error(`No elements could be found at '${rootSelector}' - a new view cannot be rendered`)
+        }
+
+        if ($(tabSelector).length === 0) {
+            throw new Error(`No tab list could be found at '${tabSelector}' - a new view cannot be rendered`)
         }
 
         /**
@@ -69,10 +101,16 @@ export class DatasetView {
             container.appendChild(renderedVariables);
         }
 
-        const globalAttributes = this.#renderAttributesTable(
+        let globalAttributes = this.#renderAttributesTable(
             this.dataset.attributes,
             true,
             null
+        )
+
+        globalAttributes = createTable(
+            `${this.data_id}-global-attributes`,
+            "Global Attributes",
+            this.dataset.attributes
         )
 
         if (globalAttributes) {
@@ -99,6 +137,12 @@ export class DatasetView {
         root.append(container)
 
         $(".yanv-accordion").accordion();
+
+        this.addTab(tabSelector);
+        root.tabs("refresh");
+
+        const newTabIndex = $(tabSelector).length - 1;
+        root.tabs("option", "active", newTabIndex);
     }
 
     /**
@@ -114,10 +158,11 @@ export class DatasetView {
          */
         const dimensionsFieldset = document.createElement("fieldset")
         dimensionsFieldset.id = dimensionsID;
-        dimensionsFieldset.className = "yanv-dimensions-fields";
+        dimensionsFieldset.className = "yanv-dimensions-fields yanv-fields";
         dimensionsFieldset.name = "Dimensions";
 
         const legend = document.createElement("legend");
+        legend.className = "yanv-legend"
         legend.textContent = "Dimensions";
 
         dimensionsFieldset.appendChild(legend);
@@ -172,12 +217,22 @@ export class DatasetView {
         typeHeaderCell.textContent = "Data Type";
         typeHeaderCell.attributes['data-column'] = 'datatype';
 
+        const minimumCell = document.createElement("th");
+        minimumCell.textContent = "Minimum Value";
+        minimumCell.attributes['data-column'] = "minimum";
+
+        const maximumCell = document.createElement("th");
+        maximumCell.textContent = "Maximum Value";
+        maximumCell.attributes['data-column'] = "maximum";
+
         const countHeaderCell = document.createElement("th");
         countHeaderCell.textContent = "Count";
         countHeaderCell.attributes['data-column'] = 'count';
 
         header.appendChild(nameHeaderCell);
         header.appendChild(typeHeaderCell);
+        header.appendChild(minimumCell);
+        header.appendChild(maximumCell);
         header.appendChild(countHeaderCell);
 
         for (let column of columns) {
@@ -204,6 +259,8 @@ export class DatasetView {
             row.attributes['data-dimension'] = rowID;
             row.attributes['data-name'] = dimension.name;
             row.attributes['data-datatype'] = dimension.datatype;
+            row.attributes['data-minimum'] = dimension.minimum;
+            row.attributes['data-maximum'] = dimension.maximum;
             row.attributes['data-count'] = dimension.count;
 
             let nameCell = document.createElement("td")
@@ -220,10 +277,26 @@ export class DatasetView {
 
             row.appendChild(typeCell);
 
+            let minimumCell = document.createElement("td");
+            minimumCell.id = `${dimensionsID}-${dimension.name}-minimum`;
+            minimumCell.innerText = dimension.minimum;
+            minimumCell.attributes['data-column'] = 'minimum';
+
+            row.appendChild(minimumCell)
+
+            let maximumCell = document.createElement("td")
+            maximumCell.id = `${dimensionsID}-${dimension.name}-maximum`
+            maximumCell.innerText = dimension.maximum;
+            maximumCell.attributes['data-column'] = 'maximum';
+
+            row.appendChild(maximumCell);
+
             let countCell = document.createElement("td");
             countCell.id = `${dimensionsID}-${dimension.name}-count`
             countCell.innerText = dimension.count;
             countCell.attributes['data-column'] = 'count';
+
+            row.appendChild(countCell);
 
             for (let column of columns) {
                 let cell = document.createElement("td")
@@ -273,9 +346,21 @@ export class DatasetView {
             variableHeader.id = `${variableID}-bar`;
             variableHeader.className = "yanv-variable-bar";
 
-            let variableName = `${variable.datatype} ${variable.name}`;
+            let datatype;
 
-            if (variable.dimensions) {
+            if (/^\|S1/.test(variable.datatype)) {
+                datatype = '';
+            }
+            else if (/^\|S\d+/.test(variable.datatype)) {
+                datatype = "string ";
+            }
+            else {
+                datatype = `${variable.datatype} `;
+            }
+
+            let variableName = `${datatype}${variable.name}`;
+
+            if (variable.dimensions.length > 0) {
                 let dimensionNames = [];
                 for (let dimension of variable.dimensions) {
                     dimensionNames.push(dimension.name)
@@ -309,6 +394,10 @@ export class DatasetView {
             let plotButton = document.createElement("button")
             plotButton.id = `plot-${variableID}`
             plotButton.innerText = "Plot";
+            plotButton.className = [
+                'yanv-button',
+                'yanv-plot-button'
+            ].join(" ");
 
             toolbar.appendChild(plotButton);
 
@@ -317,6 +406,26 @@ export class DatasetView {
             variableContents.appendChild(
                 this.#renderAttributesTable(variable.attributes, notGlobal, variableID)
             );
+
+            if (variable.examples.length > 0) {
+                /**
+                 * @type {HTMLFieldSetElement}
+                 */
+                const exampleContainer = createFieldSet(
+                    `${variableID}-examples`,
+                    "Example Values",
+                    "Example Values"
+                );
+                let exampleList = createSimpleList(
+                    `${variableID}-example-list`,
+                    "Examples",
+                    variable.examples
+                );
+
+                exampleContainer.appendChild(exampleList)
+                variableContents.appendChild(exampleContainer);
+            }
+
             accordion.appendChild(variableContents);
         }
 

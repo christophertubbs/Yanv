@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import inspect
+import random
 import typing
 import re
 
@@ -11,6 +12,9 @@ import numpy
 import pydantic
 import xarray
 
+from numpy.random import choice
+
+from utilities.netcdf import get_random_values
 from yanv.model.dimension import Dimension
 
 STRING_PATTERN = re.compile(r"S\d+$")
@@ -35,6 +39,13 @@ class Variable(pydantic.BaseModel):
         variables: typing.List[Variable] = list()
 
         for variable_name, variable in dataset.data_vars.items():
+            random_values = get_random_values(variable=variable, size=5)
+
+            if random_values:
+                examples = [str(value) for value in random_values]
+            else:
+                examples = []
+
             kwargs = dict(
                 name=variable_name,
                 datatype=str(variable.dtype),
@@ -46,7 +57,8 @@ class Variable(pydantic.BaseModel):
                 dimensions=[
                     dimensions[name]
                     for name in variable.dims
-                ]
+                ],
+                examples=examples
             )
 
             if 'long_name' in variable.attrs.keys():
@@ -65,12 +77,13 @@ class Variable(pydantic.BaseModel):
     datatype: str
     count: int
     dimensions: typing.List[Dimension] = pydantic.Field(default_factory=list)
+    examples: typing.List[str] = pydantic.Field(default_factory=list)
     long_name: typing.Optional[str] = pydantic.Field(default=None)
     units: typing.Optional[str] = pydantic.Field(default=None)
     attributes: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default_factory=dict)
 
     def is_string(self) -> bool:
-        return STRING_PATTERN.search(self.datatype) is not None
+        return STRING_PATTERN.search(self.datatype.strip()) is not None
 
     def __str__(self):
         representation = f"{'string' if self.is_string() else self.datatype} "

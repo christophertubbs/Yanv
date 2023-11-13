@@ -33,7 +33,7 @@ export class YanvClient {
             "load",
             function(payload) {
                 const view = new DatasetView(payload);
-                view.render("#content")
+                view.render("#content", "#content-tabs")
             }
         )
     }

@@ -17,12 +17,18 @@ export class Dimension {
      */
     attributes
 
-    constructor ({name, count, datatype, attributes, long_name}) {
+    minimum
+
+    maximum
+
+    constructor ({name, count, datatype, attributes, long_name, minimum, maximum}) {
         this.name = name;
         this.count = count;
         this.datatype = datatype;
         this.attributes = attributes;
         this.long_name = long_name;
+        this.minimum = minimum;
+        this.maximum = maximum;
     }
 }
 
@@ -55,8 +61,9 @@ export class Variable {
      * @member {{string: any}}
      */
     attributes
+    examples
 
-    constructor ({name, datatype, count, dimensions, long_name, units, attributes}) {
+    constructor ({name, datatype, count, dimensions, long_name, units, attributes, examples}) {
         this.name = name;
         this.datatype = datatype;
         this.count = count;
@@ -64,6 +71,7 @@ export class Variable {
         this.dimensions = dimensions
         this.units = units
         this.attributes = attributes
+        this.examples = examples
     }
 }
 

@@ -21,6 +21,8 @@ async def navigate(request: web.Request) -> web.Response:
             paths.extend([
                 str(child)
                 for child in term_path.iterdir()
+                if (child.is_dir() or str(child).endswith("nc"))
+                   and not str(child.name).startswith(".")
             ])
         elif not term_path.exists():
             match_name = str(term_path)
@@ -31,6 +33,7 @@ async def navigate(request: web.Request) -> web.Response:
                     str(child)
                     for child in term_path.iterdir()
                     if str(child).startswith(match_name)
+                        and (child.is_dir() or str(child).endswith("nc"))
                 ])
 
     return web.json_response(data=paths)

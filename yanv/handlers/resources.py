@@ -13,12 +13,16 @@ from yanv.utilities import mimetypes
 RESOURCE_DIRECTORY = pathlib.Path(__file__).parent.parent / "static"
 SCRIPT_DIRECTORY = RESOURCE_DIRECTORY / "scripts"
 STYLE_DIRECTORY = RESOURCE_DIRECTORY / "style"
+IMAGE_DIRECTORY = RESOURCE_DIRECTORY / "images"
+FAVICON_PATH = IMAGE_DIRECTORY / "favicon.ico"
 
 RESOURCE_MAP = {
     "scripts": SCRIPT_DIRECTORY,
     "script": SCRIPT_DIRECTORY,
     "style": STYLE_DIRECTORY,
     "styles": STYLE_DIRECTORY,
+    "images": IMAGE_DIRECTORY,
+    "image": IMAGE_DIRECTORY
 }
 
 
@@ -68,8 +72,15 @@ async def get_resource(request: web.Request) -> web.Response:
 
     return web.HTTPNotFound(text=f"No resource was found at '{resource_path}'")
 
+
+async def get_favicon(request: web.Request) -> web.Response:
+    return web.Response(
+        body=FAVICON_PATH.read_bytes()
+    )
+
 RESOURCE_ROUTES = [
     RouteInfo(path="/{resource_type}/{name:.*}", handler=get_resource, name="get_resource"),
+    RouteInfo(path="/favicon.ico", handler=get_favicon, name="get_favicon"),
 ]
 
 

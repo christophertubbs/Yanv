@@ -26,10 +26,13 @@ class Dimension(pydantic.BaseModel):
 
         for dimension_name, count in dataset.dims.items():
             variable: xarray.Variable = dataset.variables[dimension_name]
+
             kwargs = {
                 "name": dimension_name,
                 "count": count,
                 "datatype": str(variable.dtype),
+                "minimum": str(variable.values.min()),
+                "maximum": str(variable.values.max()),
                 "attributes": {
                     key: make_value_serializable(value)
                     for key, value in variable.attrs.items()
@@ -48,6 +51,8 @@ class Dimension(pydantic.BaseModel):
     name: str
     count: int
     datatype: str
+    minimum: str
+    maximum: str
     long_name: typing.Optional[str] = pydantic.Field(default=None)
     attributes: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default_factory=dict)
 

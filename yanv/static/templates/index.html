@@ -12,117 +12,38 @@
         <link rel="stylesheet" href="/scripts/jquery/jquery-ui.css">
         <script src="/scripts/jquery/jquery.js"></script>
         <script src="/scripts/jquery/jquery-ui.min.js"></script>
+        <script type="module" src="/scripts/utility.js"></script>
+        <script type="module" src="/scripts/elements.js"></script>
         <script type="module" src="/scripts/client.js"></script>
         <script type="module" src="/scripts/responses.js"></script>
         <script type="module" src="/scripts/requests.js"></script>
-        <script>
-            async function initializeClient() {
-                /**
-                 *
-                 * @type {YanvClient}
-                 */
-                window.yanv.client = new window.yanv.YanvClient();
-
-                yanv.client.addHandler("load", closeLoadingModal);
-                await yanv.client.connect("ws");
+        <script src="/scripts/yanv.js"></script>
+        <style>
+            #load-dialog-content {
+                display: flex;
+                width: 100%;
+                padding: 10px;
             }
 
-            async function askForData() {
-                // FOR TESTING PURPOSES - REMOVE ASAP
-                const nc_url = "/Users/christopher.tubbs/PycharmProjects/Yanv/test/resources/test.nc"
-                await getData(nc_url)
+            input#open-path {
+                width: 100%;
             }
-
-            async function getData(path) {
-                const request = new yanv.FileSelectionRequest({path: path})
-
-                /**
-                 * @type {HTMLSpanElement}
-                 */
-                const filenameSpan = document.getElementById("currently-loading-dataset");
-                filenameSpan.innerText = path;
-                request.onSend(function() {
-                    /**
-                     * @type {HTMLDialogElement}
-                     */
-                    const modal = document.getElementById("loading-modal");
-                    modal.showModal();
-                });
-
-                await yanv.client.send(request);
-            }
-
-            function initializeOpenPath() {
-                $("input#open-path").autocomplete({
-                    source: "navigate",
-                    buttons: {
-                        "Open": function() {
-                            $(this).dialog("close");
-                            getData($("#open-path").val())
-                        }
-                    }
-                })
-            }
-
-            function initializeModals() {
-                $(".yanv-modal").dialog({
-                    modal: true,
-                    autoOpen: false
-                });
-            }
-
-            async function initialize() {
-                initializeModals();
-                $("#loading-progress-bar").progressbar({value: false});
-                $("button").button();
-                initializeOpenPath()
-
-                if (!Object.hasOwn(window, 'yanv')) {
-                    console.log("Creating a new yanv namespace");
-                    window.yanv = {};
-                }
-
-                await initializeClient();
-            }
-
-            document.addEventListener("DOMContentLoaded", async function(event) {
-                await initialize();
-                await askForData();
-            });
-
-            function closeLoadingModal() {
-                /**
-                 * @type {HTMLDialogElement}
-                 */
-                const modal = document.getElementById("loading-modal");
-                modal.close();
-            }
-
-            function closeNotImplementedModal() {
-                /**
-                 * @type {HTMLDialogElement}
-                 */
-                const modal = document.getElementById("not-implemented-dialog");
-                modal.close();
-            }
-
-            function launchLoadDialog() {
-                /**
-                 *
-                 * @type {HTMLDialogElement}
-                 */
-                $("#load-dialog").dialog("open")
-            }
-        </script>
+        </style>
     </head>
     <body>
-        <div id="global-header" class="yanv-header yanv-global-header">
-            <h1>Yet Another NetCDF Viewer</h1>
+        <div id="on-screen">
+            <div id="global-header" class="yanv-header yanv-global-header">
+                <h1>Yet Another NetCDF Viewer</h1>
+            </div>
+            <div id="global-toolbar" class="yanv-toolbar yanv-global-toolbar">
+                <button onclick="launchLoadDialog()" id="load-button">Load</button>
+            </div>
+            <div id="content">
+                <ul id="content-tabs">
+
+                </ul>
+            </div>
         </div>
-        <div id="global-toolbar" class="yanv-toolbar yanv-global-toolbar">
-            <button onclick="launchLoadDialog()" id="load-button">Load</button>
-        </div>
-        <div id="content"></div>
         <dialog id="loading-modal" class="yanv-dialog yanv-information-dialog">
             <p>
                 Loading the <span id="currently-loading-dataset"></span> dataset
@@ -136,11 +57,11 @@
             </p>
             <button onclick="closeNotImplementedModal()"></button>
         </dialog>
-        <div id="load-dialog" class="yanv-dialog yanv-modal yanv-input-dialog">
-            <label for="open-path">Open</label>
-            <input id="open-path" name="open-path">
-            <br>
-            <button id="open-dataset-button">Open</button>
+        <div id="load-dialog" class="yanv-dialog yanv-modal yanv-input-dialog" title="Load Netcdf File">
+            <div id="load-dialog-content">
+                <input id="open-path" name="open-path">
+                <button id="open-dataset-button">Load</button>
+            </div>
         </div>
     </body>
 </html>
