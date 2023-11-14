@@ -5,17 +5,18 @@ from __future__ import annotations
 
 import inspect
 import os
+import pathlib
 import typing
 
 import numpy
 import pydantic
 import xarray
 from pydantic import field_serializer
+from pydantic import model_serializer
+from pydantic import model_validator
 
 from yanv.model.dimension import Dimension
 from yanv.model.variable import Variable
-
-
 
 
 def make_value_serializable(value: typing.Any):
@@ -28,7 +29,7 @@ def make_value_serializable(value: typing.Any):
 
 class Dataset(pydantic.BaseModel):
     @classmethod
-    def from_xarray(cls, dataset: xarray.Dataset) -> Dataset:
+    def from_xarray(cls, dataset: xarray.Dataset, name: str = None) -> Dataset:
         variables = Variable.from_xarray(dataset)
         dimensions = Dimension.from_xarray(dataset)
         attributes = {
@@ -37,21 +38,42 @@ class Dataset(pydantic.BaseModel):
         }
         source = dataset.encoding.get("source")
 
-        return cls(
+        kwargs = dict(
             variables=variables,
             dimensions=dimensions,
             attributes=attributes,
             sources=[source]
         )
 
+        if name:
+            kwargs['name'] = name
+
+        return cls(**kwargs)
+
     variables: typing.List[Variable] = pydantic.Field(default_factory=list)
     dimensions: typing.List[Dimension] = pydantic.Field(default_factory=list)
     attributes: typing.Dict[str, typing.Any] = pydantic.Field(default_factory=dict)
     sources: typing.List[os.PathLike] = pydantic.Field(default_factory=list)
+    name: typing.Optional[str] = pydantic.Field(default=None)
 
     @field_serializer("sources")
     def serialize_sources(self, sources, _info):
         return [str(source) for source in sources]
+
+    @model_validator(mode="after")
+    def determine_name(self) -> Dataset:
+        if self.name:
+            return self
+
+        if len(self.sources) == 1:
+            self.name = str(self.sources[0])
+        elif len(self.sources) > 1:
+            endings = [str(pathlib.Path(source).name) for source in self.sources]
+            self.name = ' + '.join(endings)
+        else:
+            self.name = "Unnamed"
+
+        return self
 
     @property
     def variable_names(self) -> typing.Sequence[str]:

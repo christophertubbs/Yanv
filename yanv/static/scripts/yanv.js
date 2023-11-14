@@ -1,3 +1,8 @@
+import {closeAllDialogs, openDialog} from "./utility.js";
+import {AcknowledgementResponse, DataResponse, OpenResponse} from "./responses.js";
+import {DatasetView} from "./views/metadata.js";
+import {BooleanValue} from "./value.js";
+
 const PREVIOUS_PATH_KEY = "previousPath";
 
 async function initializeClient() {
@@ -7,8 +12,49 @@ async function initializeClient() {
      */
     yanv.client = new yanv.YanvClient();
 
-    yanv.client.addHandler("load", closeLoadingModal);
+    /**
+     *
+     * @type {BooleanValue}
+     */
+    yanv.connected = BooleanValue.False;
+    yanv.connected.onUpdate(socketIsConnected);
+
+    yanv.client.addHandler("open", () => yanv.connected.toTrue);
+    yanv.client.addHandler("closed", () => yanv.connected.toFalse);
+    yanv.client.addHandler("load", addDatasetView);
+    yanv.client.addHandler("error", handleError);
+
+    yanv.client.registerPayloadType("connection_opened", OpenResponse);
+    yanv.client.registerPayloadType("data", DataResponse);
+    yanv.client.registerPayloadType("acknowledgement", AcknowledgementResponse);
+    yanv.client.registerPayloadType("load", DataResponse)
+
     await yanv.client.connect("ws");
+}
+
+function socketIsConnected(wasConnected, isNowConnected) {
+    if (wasConnected === isNowConnected) {
+        return;
+    }
+
+    const hide = isNowConnected ? ".yanv-when-disconnected" : ".yanv-when-connected";
+    const show = isNowConnected ? ".yanv-when-connected" : ".yanv-when-connected";
+
+    $(hide).hide();
+    $(show).show();
+}
+
+function addDatasetView(payload) {
+    const view = new DatasetView(payload);
+    view.render("#content", "#content-tabs");
+    closeLoadingModal();
+}
+
+async function handleError(payload) {
+    $("#failed_message_type").text(Boolean(payload['message_type']) ? payload["message_type"] : "Unknown")
+    $("#failed-message-id").text(payload['message_id']);
+    $("#error-message").text(payload['error_message']);
+    openDialog("#error-dialog");
 }
 
 async function getData(path) {
@@ -20,11 +66,7 @@ async function getData(path) {
     const filenameSpan = document.getElementById("currently-loading-dataset");
     filenameSpan.innerText = path;
     request.onSend(function() {
-        /**
-         * @type {HTMLDialogElement}
-         */
-        const modal = document.getElementById("loading-modal");
-        modal.showModal();
+        openDialog("#loading-modal");
     });
 
     await yanv.client.send(request);
@@ -48,10 +90,23 @@ function initializeOpenPath() {
 }
 
 function initializeModals() {
-    $(".yanv-modal:not(#load-dialog)").dialog({
+    $(".yanv-modal:not(#load-dialog):not(#loading-modal)").dialog({
         modal: true,
         autoOpen: false
     });
+
+    $("#error-dialog").dialog({
+        modal: true,
+        autoOpen: false,
+        width: "20%"
+    });
+
+    $("#loading-modal").dialog({
+        modal: true,
+        autoOpen: false,
+        width: "50%",
+        height: 200
+    })
 }
 
 async function initialize() {
@@ -60,6 +115,8 @@ async function initialize() {
     $("button").button();
     $("#content").tabs();
     initializeOpenPath()
+    $("#close-loading-modal-button").on("click", closeLoadingModal);
+    $("#load-button").on("click", launchLoadDialog);
 
     if (!Object.hasOwn(window, 'yanv')) {
         console.log("Creating a new yanv namespace");
@@ -71,7 +128,6 @@ async function initialize() {
 
 async function loadDataClicked(event) {
     const url = $("input#open-path").val();
-    $("#load-dialog").dialog("close");
     await getData(url);
     localStorage.setItem(PREVIOUS_PATH_KEY, url);
 }
@@ -81,19 +137,7 @@ document.addEventListener("DOMContentLoaded", async function(event) {
 });
 
 function closeLoadingModal() {
-    /**
-     * @type {HTMLDialogElement}
-     */
-    const modal = document.getElementById("loading-modal");
-    modal.close();
-}
-
-function closeNotImplementedModal() {
-    /**
-     * @type {HTMLDialogElement}
-     */
-    const modal = document.getElementById("not-implemented-dialog");
-    modal.close();
+    closeAllDialogs();
 }
 
 function launchLoadDialog() {
@@ -103,5 +147,5 @@ function launchLoadDialog() {
         $("input#open-path").val(previousPath);
     }
 
-    $("#load-dialog").dialog("open")
+    openDialog("#load-dialog")
 }

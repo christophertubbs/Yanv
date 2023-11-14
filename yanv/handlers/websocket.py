@@ -16,6 +16,7 @@ import pandas
 from aiohttp import WSMessage
 from aiohttp import web
 
+from messages.responses import invalid_message_response
 from yanv.backend.base import BaseBackend
 from yanv.backend.file import FileBackend
 from yanv.messages.base import YanvMessage
@@ -27,8 +28,6 @@ from yanv.messages.responses import YanvResponse
 from yanv.messages.responses.base import AcknowledgementResponse
 from yanv.messages.responses.base import OpenResponse
 from yanv.messages.responses.data import YanvDataResponse
-
-from yanv.messages.responses.error import unrecognized_message_response
 
 CONNECTION_ID_LENGTH = 5
 CONNECTION_ID_CHARACTER_SET = string.hexdigits
@@ -73,12 +72,22 @@ async def handle_message(connection: web.WebSocketResponse, message: typing.Unio
     if isinstance(message, (str, bytes)):
         message = json.loads(message)
 
+    request: typing.Optional[YanvRequest] = None
+    response = None
+
     try:
         request_wrapper = MasterRequest.model_validate({"request": message})
-        request: YanvRequest = request_wrapper.request
-        handler = MESSAGE_HANDLERS.get(type(request), default_message_handler)
-        response = None
+        request = request_wrapper.request
+    except Exception as error:
+        print(error)
+        print("Could not deserialize incoming message:")
+        pprint(message)
+        response = invalid_message_response()
+
+    if isinstance(request, YanvRequest):
         try:
+            handler = MESSAGE_HANDLERS.get(type(request), default_message_handler)
+
             if isinstance(handler, typing.Sequence):
                 handlers: typing.Sequence[HANDLER] = handler
             else:
@@ -91,21 +100,17 @@ async def handle_message(connection: web.WebSocketResponse, message: typing.Unio
                 response = default_message_handler(request, state)
 
         except BaseException as error:
+            message = f"An error occurred while handling a `{type(request).__name__}` message: {str(error)}"
             logging.error(
-                f"An error occurred while handling a `{type(request)}` message",
+                message,
                 exc_info=error,
                 stack_info=True
             )
             response = ErrorResponse(
                 message_id=request.message_id,
-                message_type=request.operation,
-                message=f"An error occurred while handling a `{type(request)}` message: {str(error)}"
+                message_type=type(request).__name__,
+                error_message=message
             )
-    except Exception as error:
-        print(error)
-        print("Could not deserialize incoming message:")
-        pprint(message)
-        response = unrecognized_message_response()
 
     await connection.send_json(response.model_dump())
 

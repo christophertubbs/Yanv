@@ -92,12 +92,14 @@ export class Dataset {
      * @member {{string: any}}
      */
     attributes
+    name
 
-    constructor ({variables, dimensions, sources, attributes}) {
+    constructor ({variables, dimensions, sources, attributes, name}) {
         this.variables = variables;
         this.dimensions = dimensions;
         this.sources = sources;
         this.attributes = attributes;
+        this.name = name;
     }
 }
 

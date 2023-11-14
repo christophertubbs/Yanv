@@ -11,6 +11,13 @@ function sleep(ms, message) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const ReadyState = Object.freeze({
+    Connecting: 0,
+    Open: 1,
+    Closing: 2,
+    Closed: 3
+})
+
 export class YanvClient {
     /**
      *
@@ -19,12 +26,8 @@ export class YanvClient {
     #socket = null;
     #handlers = {};
     #id = null;
-    #payloadTypes = {
-        "connection_opened": OpenResponse,
-        "data": DataResponse,
-        "acknowledgement": AcknowledgementResponse,
-        "load": DataResponse
-    }
+    #payloadTypes = {}
+    #currentPath = null;
     
     constructor () {
         this.#id = this.#generateID();
@@ -85,6 +88,10 @@ export class YanvClient {
      * @param payload {Request|object}
      */
     send = async (payload) => {
+        if (this.#currentPath === null || this.#currentPath === undefined) {
+            throw new Error(`Cannot send message through client '${this.getID()}' - please connect first.`);
+        }
+
         let rawPayload;
         if (payload instanceof Request) {
             rawPayload = payload.getRawPayload();
@@ -99,7 +106,11 @@ export class YanvClient {
 
         const payloadText = JSON.stringify(rawPayload, null, 4)
 
-        while (this.#socket.readyState === 0) {
+        if (!this.isConnected()) {
+            await this.connect(this.#currentPath)
+        }
+
+        while (this.#socket.readyState === ReadyState.Connecting) {
             await sleep(1000);
         }
 
@@ -134,9 +145,11 @@ export class YanvClient {
         this.#socket.onclose = this.#handleClose;
         this.#socket.onerror = this.#handleError;
 
-        while (this.#socket.readyState === 0) {
+        while (this.#socket.readyState === ReadyState.Connecting) {
             await sleep(1000);
         }
+
+        this.#currentPath = path;
     }
 
     /**
@@ -173,16 +186,30 @@ export class YanvClient {
     }
 
     #handleError = (event) => {
-        debugger;
+        this.#handle("error", event.data ?? {})
     }
 
     #handleOpen = (event) => {
         console.log("Connection opened");
+        this.#handle("open", event.data ?? {});
     }
 
     #handleClose = (event) => {
         console.log("Connection closed");
         this.#socket = null;
+        this.#handle("closed", event.data ?? {});
+    }
+
+    registerPayloadType = (operation, payloadType) => {
+        this.#payloadTypes[operation] = payloadType;
+    }
+
+    isConnected = () => {
+        if (this.#socket === null || this.#socket === undefined) {
+            return false;
+        }
+
+        return this.#socket.readyState === ReadyState.Open;
     }
 }
 

@@ -38,10 +38,10 @@ class Variable(pydantic.BaseModel):
 
         variables: typing.List[Variable] = list()
 
-        for variable_name, variable in dataset.data_vars.items():
-            random_values = get_random_values(variable=variable, size=5)
+        for variable_name, variable in dataset.variables.items():
+            random_values = get_random_values(name=str(variable_name), variable=variable, size=5)
 
-            if random_values:
+            if random_values is not None:
                 examples = [str(value) for value in random_values]
             else:
                 examples = []

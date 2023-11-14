@@ -25,22 +25,35 @@ class Dimension(pydantic.BaseModel):
         dimensions: typing.List[Dimension] = list()
 
         for dimension_name, count in dataset.dims.items():
-            variable: xarray.Variable = dataset.variables[dimension_name]
+            variable: xarray.Variable = dataset.variables.get(dimension_name)
+
+            if variable is not None:
+                datatype = str(variable.dtype)
+                minimum = str(variable.values.min())
+                maximum = str(variable.values.max())
+                attributes = {
+                    key: make_value_serializable(value)
+                    for key, value in variable.attrs.items()
+                }
+                long_name = variable.attrs.get("long_name")
+            else:
+                datatype = "int64"
+                minimum = "0"
+                maximum = str(dataset.dims[dimension_name])
+                attributes = {}
+                long_name = dimension_name
 
             kwargs = {
                 "name": dimension_name,
                 "count": count,
-                "datatype": str(variable.dtype),
-                "minimum": str(variable.values.min()),
-                "maximum": str(variable.values.max()),
-                "attributes": {
-                    key: make_value_serializable(value)
-                    for key, value in variable.attrs.items()
-                }
+                "datatype": datatype,
+                "minimum": minimum,
+                "maximum": maximum,
+                "attributes": attributes
             }
 
-            if "long_name" in variable.attrs.keys():
-                kwargs['long_name'] = variable.attrs['long_name']
+            if long_name is not None:
+                kwargs['long_name'] = long_name
 
             dimensions.append(
                 Dimension(**kwargs)

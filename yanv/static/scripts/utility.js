@@ -50,3 +50,12 @@ export function getColumnNames(objects, all) {
 
     return commonFields;
 }
+
+export function closeAllDialogs() {
+    $(".yanv-dialog").dialog("close");
+}
+
+export function openDialog(selector) {
+    closeAllDialogs();
+    $(selector).dialog("open");
+}

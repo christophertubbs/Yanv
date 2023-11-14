@@ -1,0 +1,43 @@
+#on-screen {
+    height: 98vh;
+    overflow: hidden;
+}
+
+.yanv-tab.yanv-container {
+    height: 80vh !important;
+    width: 100%;
+    display: flex;
+}
+
+.yanv-field-wrapper {
+    overflow-y: auto;
+    width: 99%;
+}
+
+#load-dialog-content {
+    display: flex;
+    width: 100%;
+    padding: 10px;
+}
+
+#load-dialog {
+    overflow-x: hidden;
+}
+
+input#open-path {
+    width: 100%;
+}
+
+.ui-autocomplete {
+    max-height: 200px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+.ui-widget-overlay {
+    opacity: 0.5;
+}
+
+#loading-modal {
+    width: 50%;
+}

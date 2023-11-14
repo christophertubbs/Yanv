@@ -14,3 +14,8 @@ from ...model.dataset import Dataset
 
 class YanvDataResponse(DataMessage):
     data: Dataset
+
+
+class PlotDataResponse(YanvResponse):
+    operation: typing.Literal["plot_data"]
+    markup: str

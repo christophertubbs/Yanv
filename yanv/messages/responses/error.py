@@ -11,6 +11,13 @@ from ..base import YanvMessage
 
 
 class ErrorResponse(YanvMessage):
+    def __init__(self, **kwargs):
+        if 'operation' in kwargs and 'message_type' not in kwargs:
+            kwargs['message_type'] = kwargs['operation']
+
+        kwargs['operation'] = 'error'
+        super().__init__(**kwargs)
+
     error_message: str = pydantic.Field(description="A description of the error")
     message_type: typing.Optional[str] = pydantic.Field(
         default=None,

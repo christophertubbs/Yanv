@@ -78,36 +78,58 @@ export class DatasetView {
          *
          * @type {HTMLDivElement}
          */
-        const container = document.createElement("div");
-        container.id = this.data_id;
+        const tabContainer = document.createElement("div");
+        tabContainer.id = this.data_id;
 
         const containerCSSClasses = [
             `yanv-container`,
+            'yanv-tab',
             `yanv-dataset`
         ]
 
-        container.className = containerCSSClasses.join(" ");
-        container.attributes['data-dataset'] = this.data_id;
+        tabContainer.className = containerCSSClasses.join(" ");
+        tabContainer.attributes['data-dataset'] = this.data_id;
+
+        /**
+         *
+         * @type {HTMLDivElement}
+         */
+        const innerContainer = document.createElement("div");
+        innerContainer.id = `${this.data_id}-field-wrapper`;
+
+        const innerContainerCSSClasses = [
+            "yanv-field-wrapper"
+        ]
+
+        innerContainer.className = innerContainerCSSClasses.join(" ");
+
+        if (this.dataset.name) {
+            const nameLabel = document.createElement("b")
+            nameLabel.innerText = "Name:"
+            nameLabel.className = "yanv-detail-label"
+
+            const nameTag = document.createElement("span")
+            nameTag.innerText = this.dataset.name
+            nameTag.className = 'yanv-detail';
+
+            innerContainer.appendChild(nameLabel)
+            innerContainer.appendChild(nameTag)
+            innerContainer.appendChild(document.createElement("br"))
+        }
 
         const renderedDimensions = this.renderDimensions(this.dataset.dimensions);
 
         if (renderedDimensions) {
-            container.appendChild(renderedDimensions);
+            innerContainer.appendChild(renderedDimensions);
         }
 
         const renderedVariables = this.renderVariables(this.dataset.variables);
 
         if (renderedVariables) {
-            container.appendChild(renderedVariables);
+            innerContainer.appendChild(renderedVariables);
         }
 
-        let globalAttributes = this.#renderAttributesTable(
-            this.dataset.attributes,
-            true,
-            null
-        )
-
-        globalAttributes = createTable(
+        let globalAttributes = createTable(
             `${this.data_id}-global-attributes`,
             "Global Attributes",
             this.dataset.attributes
@@ -131,10 +153,12 @@ export class DatasetView {
             globalAttributeLegend.innerText = "Global Attributes"
             globalAttributesField.appendChild(globalAttributeLegend);
             globalAttributesField.appendChild(globalAttributes);
-            container.appendChild(globalAttributesField);
+            innerContainer.appendChild(globalAttributesField);
         }
 
-        root.append(container)
+        tabContainer.appendChild(innerContainer);
+
+        root.append(tabContainer)
 
         $(".yanv-accordion").accordion();
 
