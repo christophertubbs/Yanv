@@ -7,10 +7,11 @@ import typing
 
 import pydantic
 
+from . import YanvResponse
 from ..base import YanvMessage
 
 
-class ErrorResponse(YanvMessage):
+class ErrorResponse(YanvResponse):
     def __init__(self, **kwargs):
         if 'operation' in kwargs and 'message_type' not in kwargs:
             kwargs['message_type'] = kwargs['operation']

@@ -6,7 +6,7 @@
  * @returns {string[]}
  */
 export function getColumnNames(objects, all) {
-    if (typeof objects === 'object') {
+    if (!Array.isArray(objects)) {
         return Object.entries(objects)
             .filter(
                 ([key, value]) => typeof value !== 'function'

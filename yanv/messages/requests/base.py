@@ -1,20 +1,16 @@
 """
-@TODO: Put a module wide description here
+Defines base classes for request messages
 """
 from __future__ import annotations
-
-import abc
-import typing
-
-import pydantic
+from abc import ABC
 
 from ..base import DataMessage
 from ..base import YanvMessage
 
 
-class YanvRequest(YanvMessage):
+class YanvRequest(YanvMessage, ABC):
     ...
 
 
-class YanvDataRequest(DataMessage):
+class YanvDataRequest(YanvRequest, DataMessage, ABC):
     ...

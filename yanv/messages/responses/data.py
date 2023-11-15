@@ -12,10 +12,10 @@ from ..base import DataMessage
 from ...model.dataset import Dataset
 
 
-class YanvDataResponse(DataMessage):
+class YanvDataResponse(YanvResponse, DataMessage):
     data: Dataset
 
 
-class PlotDataResponse(YanvResponse):
+class PlotDataResponse(YanvResponse, DataMessage):
     operation: typing.Literal["plot_data"]
     markup: str

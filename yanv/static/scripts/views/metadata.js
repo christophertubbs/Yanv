@@ -1,26 +1,39 @@
-
 import {DataResponse} from "../responses.js";
 import {Dataset} from "../model.js";
 import {createFieldSet, createSimpleList, createTable} from "../elements.js";
 
+/**
+ * Builds a view on the page that allows a user to inspect loaded netcdf data
+ */
 export class DatasetView {
     /**
+     * The response that brought back the netcdf data
      * @member {DataResponse}
      */
     data
 
     /**
+     * Details about the netcdf file
      * @member {Dataset}
      */
     dataset
     /**
+     * A unique identifier for this data that also matches what is on the server
      * @member {string}
      */
     data_id
 
     /**
+     * The anchor that activates the tab for this when clicked
      *
-     * @param data {DataResponse}
+     * @member {HTMLAnchorElement|undefined}
+     */
+    tabLink;
+
+    /**
+     * Constructor
+     *
+     * @param data {DataResponse} The response from the server that provided this data
      */
     constructor (data) {
         this.data = data;
@@ -28,18 +41,25 @@ export class DatasetView {
         this.dataset = new Dataset(data.data);
     }
 
+    open = () => {
+        this.tabLink.click();
+    }
+
     /**
+     * Add a tab for this dataset in the set of tabs
      *
      * @param tabSelector {string}
      */
-    addTab = (tabSelector) => {
+    #addTab = (tabSelector) => {
         const tabs = $(tabSelector);
 
+        // Only add this tab if there isn't already one like it
         if ($(`${tabSelector} li#${this.data_id}-tab`).length === 0) {
             /**
              * @type {HTMLLIElement}
              */
             const tab = document.createElement("li")
+            tab.id = `${this.data_id}-tab`;
 
             /**
              *
@@ -47,7 +67,16 @@ export class DatasetView {
              */
             const tabLink = document.createElement("a")
             tabLink.href = `#${this.data_id}`;
-            tabLink.innerText = this.data_id;
+
+            if (this.dataset.name) {
+                const nameParts = this.dataset.name.split(/(\\|\/)/);
+                tabLink.innerText = nameParts[nameParts.length - 1];
+            }
+            else {
+                tabLink.innerText = this.data_id;
+            }
+
+            this.tabLink = tabLink;
 
             tab.appendChild(tabLink);
             tabs.append(tab);
@@ -55,31 +84,37 @@ export class DatasetView {
     }
 
     /**
+     * Render this view at the given tab container
      *
-     * @param rootSelector {string}
-     * @param tabSelector {string}
+     * @param tabContainerSelector {string} The selector for the containers where tab data is added
+     * @param tabListSelector {string} The selector for the list of tabs where the handle will be placed
      */
-    render = (rootSelector, tabSelector) => {
+    render = (tabContainerSelector, tabListSelector) => {
         /**
+         * The container that holds all tab content
          *
          * @type {jQuery}
          */
-        const root = $(rootSelector);
+        const tabContainer = $(tabContainerSelector);
 
-        if (!root) {
-            throw new Error(`No elements could be found at '${rootSelector}' - a new view cannot be rendered`)
+        if (!tabContainer) {
+            throw new Error(`No elements could be found at '${tabContainerSelector}' - a new view cannot be rendered`)
         }
 
-        if ($(tabSelector).length === 0) {
-            throw new Error(`No tab list could be found at '${tabSelector}' - a new view cannot be rendered`)
+        if ($(tabListSelector).length === 0) {
+            throw new Error(`No tab list could be found at '${tabListSelector}' - a new view cannot be rendered`)
+        }
+
+        if ($(`#${newTabID}`).length > 0) {
+            console.warn(`There is already a view for dataset ${this.data_id}`)
         }
 
         /**
          *
          * @type {HTMLDivElement}
          */
-        const tabContainer = document.createElement("div");
-        tabContainer.id = this.data_id;
+        const newTab = document.createElement("div");
+        newTab.id = this.data_id;
 
         const containerCSSClasses = [
             `yanv-container`,
@@ -87,8 +122,8 @@ export class DatasetView {
             `yanv-dataset`
         ]
 
-        tabContainer.className = containerCSSClasses.join(" ");
-        tabContainer.attributes['data-dataset'] = this.data_id;
+        newTab.className = containerCSSClasses.join(" ");
+        newTab.attributes['data-dataset'] = this.data_id;
 
         /**
          *
@@ -103,19 +138,39 @@ export class DatasetView {
 
         innerContainer.className = innerContainerCSSClasses.join(" ");
 
+        const metadataFieldset = createFieldSet(
+            `${this.data_id}-metadata`,
+            `${this.data_id}-metadata`,
+            "Metadata"
+        );
+
         if (this.dataset.name) {
             const nameLabel = document.createElement("b")
-            nameLabel.innerText = "Name:"
+            nameLabel.innerText = "Name: "
             nameLabel.className = "yanv-detail-label"
 
             const nameTag = document.createElement("span")
             nameTag.innerText = this.dataset.name
             nameTag.className = 'yanv-detail';
 
-            innerContainer.appendChild(nameLabel)
-            innerContainer.appendChild(nameTag)
-            innerContainer.appendChild(document.createElement("br"))
+            metadataFieldset.appendChild(nameLabel)
+            metadataFieldset.appendChild(nameTag)
+            metadataFieldset.appendChild(document.createElement("br"))
         }
+
+        const idLabel = document.createElement("b");
+        idLabel.innerText = "Generated ID: ";
+        idLabel.className = "yanv-detail-label";
+
+        const idTag = document.createElement("span");
+        idTag.innerText = this.data_id;
+        idTag.className = 'yanv-detail';
+
+        metadataFieldset.appendChild(idLabel);
+        metadataFieldset.appendChild(idTag);
+        metadataFieldset.appendChild(document.createElement("br"))
+
+        innerContainer.appendChild(metadataFieldset);
 
         const renderedDimensions = this.renderDimensions(this.dataset.dimensions);
 
@@ -156,17 +211,18 @@ export class DatasetView {
             innerContainer.appendChild(globalAttributesField);
         }
 
-        tabContainer.appendChild(innerContainer);
+        newTab.appendChild(innerContainer);
 
-        root.append(tabContainer)
+        tabContainer.append(newTab)
 
-        $(".yanv-accordion").accordion();
+        $(".yanv-accordion").accordion({
+            heightStyle: "content"
+        });
 
-        this.addTab(tabSelector);
-        root.tabs("refresh");
+        this.#addTab(tabListSelector);
+        tabContainer.tabs("refresh");
 
-        const newTabIndex = $(tabSelector).length - 1;
-        root.tabs("option", "active", newTabIndex);
+        this.open();
     }
 
     /**
@@ -191,12 +247,42 @@ export class DatasetView {
 
         dimensionsFieldset.appendChild(legend);
 
+        const rows = dimensions.map(
+            (dimension) => {
+                let dimensionData = {
+                    name: dimension.name,
+                    datatype: dimension.datatype,
+                    minimum: dimension.minimum,
+                    maximum: dimension.maximum,
+                    count: dimension.count
+                };
+                if (dimension.attributes !== null && dimension.attributes !== undefined) {
+                    Object.assign(dimensionData, dimension.attributes);
+                }
+                return dimensionData;
+            });
+
+        const tableID = `${dimensionsID}-table`
+
+        const dimTable = createTable(
+            tableID,
+            "Dimensions",
+            rows,
+            null,
+            {
+                "name": "Name",
+                "datatype": "Data Type",
+                "minimum": "Minimum",
+                "maximum": "Maximum"
+            }
+        )
+
         /**
          * @type {HTMLTableElement}
          */
         const dimensionsTable = document.createElement("table")
         dimensionsTable.className = "yanv-dimensions-table"
-        dimensionsTable.id = `${dimensionsID}-table`;
+        dimensionsTable.id = tableID;
 
         let columns = [];
         let isFirstDimension = true;
@@ -337,7 +423,8 @@ export class DatasetView {
             rowID++;
         }
 
-        dimensionsFieldset.appendChild(dimensionsTable);
+        dimensionsFieldset.appendChild(dimTable);
+        //dimensionsFieldset.appendChild(dimensionsTable);
 
 
         return dimensionsFieldset;
@@ -378,6 +465,12 @@ export class DatasetView {
             else if (/^\|S\d+/.test(variable.datatype)) {
                 datatype = "string ";
             }
+            else if (/^[Ii][Nn][Tt]\d+/.test(variable.datatype)) {
+                datatype = "int "
+            }
+            else if (/^[Ff][Ll][Oo][Aa][Tt]\d+/.test(variable.datatype)) {
+                datatype = "float "
+            }
             else {
                 datatype = `${variable.datatype} `;
             }
@@ -390,6 +483,13 @@ export class DatasetView {
                     dimensionNames.push(dimension.name)
                 }
                 variableName = `${variableName}(${dimensionNames.join(", ")})`
+            }
+
+            if (Object.keys(variable.attributes).includes("units")) {
+                variableName = `${variableName} => ${variable.attributes['units']}`;
+            }
+            else if (Object.keys(variable.attributes).includes("unit")) {
+                variableName = `${variableName} => ${variable.attributes["unit"]}`
             }
 
             variableHeader.textContent = variableName;
@@ -498,67 +598,13 @@ export class DatasetView {
             return lackOfAttributesParagraph;
         }
 
-        let attributesTable = document.createElement("table");
-        attributesTable.id = `${variableID}-attributes`;
+        const tableID = variableID ? `${variableID}-attributes` : `${scope}-attributes`;
 
-        const tableCSSClasses = [
-            `yanv-table`,
-            "yanv-attributes",
-            `yanv-${scope}-attributes`
-        ];
-
-        attributesTable.className = tableCSSClasses.join(" ");
-
-        let rowID = 0;
-
-        for (let [key, value] of Object.entries(attributes)) {
-            let attributeID = `${variableID}-${key}`;
-
-            /**
-             *
-             * @type {HTMLTableRowElement}
-             */
-            let row = document.createElement("tr")
-            let cssClasses = [
-                `yanv-${rowID % 2 === 0 ? "even" : "odd"}-row`,
-                'yanv-row',
-                'yanv-attribute',
-                `yanv-${scope}-attribute`
-            ];
-
-            row.className = cssClasses.join(" ");
-            row.id = attributeID;
-
-            row.attributes['data-key'] = key;
-            row.attributes['data-value'] = value;
-            row.attributes['data-row'] = rowID;
-
-            /**
-             * @type {HTMLTableCellElement}
-             */
-            let keyCell = document.createElement("td");
-            keyCell.className = `yanv-attribute-name yanv-${scope}-attribute-name`;
-            keyCell.id = `${attributeID}-key`;
-            keyCell.textContent = key;
-
-            row.appendChild(keyCell);
-
-            /**
-             * @type {HTMLTableCellElement}
-             */
-            let valueCell = document.createElement("td");
-            valueCell.className = `yanv-attribute-value yanv-${scope}-attribute-value`;
-            valueCell.id = `${attributeID}-value`
-            valueCell.textContent = value;
-            valueCell.attributes['data-attribute'] = key;
-
-            row.appendChild(valueCell);
-
-            attributesTable.appendChild(row);
-            rowID++;
-        }
-
-        return attributesTable;
+        return createTable(
+            tableID,
+            `${scope}-attributes`,
+            attributes
+        );
     }
 }
 

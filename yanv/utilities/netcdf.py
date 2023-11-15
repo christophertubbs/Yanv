@@ -5,41 +5,80 @@ from __future__ import annotations
 
 import random
 import typing
+from datetime import datetime
 
 import numpy
 import xarray
+from numpy import datetime64
 
 from numpy.random import choice
-
+from pandas import Timestamp
+from xarray.core.coordinates import DataArrayCoordinates
 
 _VALUE_TYPE = typing.TypeVar("_VALUE_TYPE")
 
 
-def get_random_variable_coordinate(name: str, variable: xarray.Variable) -> typing.Sequence[int]:
-    coordinates = []
+def variable_is_spatial(variable: xarray.DataArray) -> bool:
+    """
+    Determines if a given variable represents spatial data
 
-    needed_dimensions = [variable.dims[index] for index in range(len(variable.dims) - 1)]
+    :param variable: The variable to check
+    :return: Whether the data represented by the variable is spatial
+    """
+    variable_coordinates: DataArrayCoordinates = variable.coords
 
-    for dimension in needed_dimensions:
-        try:
-            coordinates.append(random.randint(0, variable.sizes[dimension] - 1))
-        except BaseException as index_exception:
-            message = f"Could not index {name} on dimension '{dimension}' " \
-                      f"with the required dimensions '{needed_dimensions}' because {str(index_exception)}"
-            raise IndexError(message)
+    if len(variable_coordinates.dims) < 2:
+        return False
 
-    return coordinates
+    y_dimension, x_dimension = variable_coordinates.dims[-2:]
+
+    if y_dimension not in variable_coordinates.variables or x_dimension not in variable_coordinates.variables:
+        return False
+
+    x_variable = variable_coordinates.variables[x_dimension]
+    y_variable = variable_coordinates.variables[y_dimension]
+
+    axis_attribute = '_CoordinateAxisType'
+
+    return axis_attribute in x_variable.attrs and axis_attribute in y_variable.attrs
+
+
+def variable_is_temporal(variable: xarray.DataArray) -> bool:
+    coordinates = variable.coords
+
+    for coordinate_name in reversed(coordinates.dims):
+        coordinate_variable = coordinates.variables.get(coordinate_name)
+
+        if coordinate_variable is None:
+            continue
+
+        coordinate_type = coordinate_variable.dtype.type
+
+        # This variable is considered temporal if its type is a datetime type and it has more than one value
+        #   A datetime variable isn't considered temporal if it only has 1 value since it doesn't describe data at
+        #   more than one time
+        if issubclass(coordinate_type, (datetime64, datetime, Timestamp)) and coordinate_variable.size > 1:
+            return True
+
+    return False
 
 
 def get_random_values(
-    name: str,
-    variable: typing.Union[xarray.Variable, xarray.DataArray],
+    variable: xarray.DataArray,
     size: int = None
 ) -> typing.Optional[typing.Sequence]:
+    """
+    Retrieve a random sample of values from a variable
+
+    :param name: The name of the variable
+    :param variable: The variable to sample
+    :param size: The requested amount of values to retrieve
+    :return: A sequence of values from the variable
+    """
     if size is None:
         size = 1
 
-    max_attempts = 5
+    max_attempts = 25
 
     random_values: typing.List[_VALUE_TYPE] = []
 
@@ -65,36 +104,23 @@ def get_random_values(
 
     while len(random_values) < size and outer_attempts < max_attempts:
         attempts = 0
-        coordinates = None
 
         while attempts < max_attempts:
-            coordinates = get_random_variable_coordinate(name=name, variable=variable)
-            attempts += 1
+            variable_coordinates = {
+                key: random.randint(0, size - 1)
+                for key, size in variable.coords.sizes.items()
+                if key != variable.coords.dims[-1]
+            }
 
-        if coordinates is None:
-            break
+            sample_array = variable.isel(variable_coordinates)
 
-        attempts = 0
+            random_sample = choice(sample_array, size=min(size, sample_array.size))
 
-        while attempts < max_attempts:
-            sample_array = variable.values
-
-            applied_coordinates = []
-            for coordinate in coordinates:
-                try:
-                    applied_coordinates.append(coordinate)
-                    sample_array = sample_array[coordinate]
-                except BaseException as coordinate_exception:
-                    message = f"Failed to index '{name}' at the coordinate " \
-                              f"'[{', '.join([str(index) for index in applied_coordinates])}]' with a total expected " \
-                              f"coordinate of `[{', '.join([str(index) for index in coordinates])}]`"
-                    raise Exception(message) from coordinate_exception
-
-            random_value = choice(sample_array)
-
-            if not numpy.isnan(random_value) and random_value not in random_values:
-                random_values.append(random_value)
-                break
+            for random_value in random_sample:
+                if not numpy.isnan(random_value) and random_value not in random_values:
+                    random_values.append(random_value)
+                if len(random_values) >= size:
+                    return random_values
 
             attempts += 1
 

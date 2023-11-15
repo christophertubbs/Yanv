@@ -1,3 +1,5 @@
+import {getColumnNames} from "./utility.js";
+
 /**
  * Create a common type of div
  * @param elementID {string} The id of the element
@@ -85,7 +87,10 @@ export function createTable(elementID, name, rows, columns, titles, includeHeade
     const cleanID = elementID.trim().replace(" ", "_");
     const cleanName = name.trim().replace(" ", "_");
 
-    if (typeof rows === 'object') {
+    let tableType = 'yanv-standard-table';
+
+    if (!Array.isArray(rows)) {
+        tableType = 'yanv-key-value-table'
         columns = ['key', 'value'];
 
         if (includeHeader === null || includeHeader === undefined) {
@@ -103,6 +108,10 @@ export function createTable(elementID, name, rows, columns, titles, includeHeade
             )
     }
 
+    if (columns === null || columns === undefined || columns.length === 0) {
+        columns = getColumnNames(rows)
+    }
+
     if (includeHeader === null || includeHeader === undefined) {
         includeHeader = true;
     }
@@ -116,7 +125,8 @@ export function createTable(elementID, name, rows, columns, titles, includeHeade
 
     const tableCSS = [
         "yanv-table",
-        `yanv-${cleanName}-table`
+        `yanv-${cleanName}-table`,
+        tableType
     ]
 
     table.className = tableCSS.join(" ");
@@ -140,7 +150,7 @@ export function createTable(elementID, name, rows, columns, titles, includeHeade
          */
         const headerRow = document.createElement("tr");
         const headerRowCSS = [
-            "yanv-row",
+            "yanv-table-row",
             "yanv-header-row",
             `yanv-${cleanName}-header-row`
         ]
@@ -219,6 +229,10 @@ export function createTable(elementID, name, rows, columns, titles, includeHeade
 
             if (Object.keys(rowData).includes(column)) {
                 let value = rowData[column];
+
+                if (value !== null && value !== undefined && typeof value === 'string' && value.length > 100) {
+                    value = value.replaceAll(",", ', ');
+                }
                 cell.innerText = value;
                 cell.title = `${cellName}: ${value}`
 

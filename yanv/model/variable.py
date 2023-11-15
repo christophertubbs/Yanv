@@ -4,15 +4,12 @@
 from __future__ import annotations
 
 import inspect
-import random
 import typing
 import re
 
 import numpy
 import pydantic
 import xarray
-
-from numpy.random import choice
 
 from utilities.netcdf import get_random_values
 from yanv.model.dimension import Dimension
@@ -38,8 +35,9 @@ class Variable(pydantic.BaseModel):
 
         variables: typing.List[Variable] = list()
 
-        for variable_name, variable in dataset.variables.items():
-            random_values = get_random_values(name=str(variable_name), variable=variable, size=5)
+        for variable_name in dataset.variables.keys():
+            variable = dataset[variable_name]
+            random_values = get_random_values(variable=variable, size=5)
 
             if random_values is not None:
                 examples = [str(value) for value in random_values]

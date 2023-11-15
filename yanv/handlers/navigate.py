@@ -3,12 +3,14 @@
 """
 from __future__ import annotations
 
-import typing
 from pathlib import Path
 
 from aiohttp import web
 
+from utilities.common import local_only
 
+
+@local_only
 async def navigate(request: web.Request) -> web.Response:
     paths = []
 

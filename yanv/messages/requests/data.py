@@ -8,6 +8,7 @@ import typing
 from datetime import datetime
 
 import pydantic
+from pydantic import field_validator
 
 from . import YanvRequest
 from .base import YanvDataRequest
@@ -22,10 +23,6 @@ class FileSelectionRequest(YanvRequest):
     """
     operation: typing.Literal['load'] = pydantic.Field(description="Description stating that this should be loading data")
     path: pathlib.Path = pydantic.Field(description="The path to the requested file")
-    row_count: typing.Optional[int] = pydantic.Field(
-        default=DEFAULT_ROW_COUNT,
-        description="The number of rows to return"
-    )
 
 
 class FilterRequest(YanvDataRequest):

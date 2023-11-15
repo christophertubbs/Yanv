@@ -8,28 +8,88 @@ const PREVIOUS_PATH_KEY = "previousPath";
 async function initializeClient() {
     /**
      *
-     * @type {YanvClient}
-     */
-    yanv.client = new yanv.YanvClient();
-
-    /**
-     *
      * @type {BooleanValue}
      */
-    yanv.connected = BooleanValue.False;
-    yanv.connected.onUpdate(socketIsConnected);
+    const contentLoaded = BooleanValue.True;
+    contentLoaded.onUpdate(contentHasBeenLoaded);
 
-    yanv.client.addHandler("open", () => yanv.connected.toTrue);
-    yanv.client.addHandler("closed", () => yanv.connected.toFalse);
-    yanv.client.addHandler("load", addDatasetView);
-    yanv.client.addHandler("error", handleError);
+    Object.defineProperty(
+        yanv,
+        "contentLoaded",
+        {
+            get() {
+                return contentLoaded;
+            },
+            set(newValue) {
+                if (newValue) {
+                    return contentLoaded.toTrue;
+                }
+                else {
+                    return contentLoaded.toFalse;
+                }
+            },
+            enumerable: true
+        }
+    )
 
-    yanv.client.registerPayloadType("connection_opened", OpenResponse);
-    yanv.client.registerPayloadType("data", DataResponse);
-    yanv.client.registerPayloadType("acknowledgement", AcknowledgementResponse);
-    yanv.client.registerPayloadType("load", DataResponse)
+    const connected = BooleanValue.True;
+    connected.onUpdate(socketIsConnected);
 
+    Object.defineProperty(
+        yanv,
+        "connected",
+        {
+            get() {
+                return connected;
+            },
+            set(newValue) {
+                if (newValue) {
+                    return connected.toTrue
+                }
+                return connected.toFalse
+            },
+            enumerable: true
+        }
+    )
+
+    const client = new yanv.YanvClient();
+
+    client.addHandler("open", () => yanv.connected.toTrue);
+    client.addHandler("closed", () => yanv.connected.toFalse);
+    client.addHandler("load", addDatasetView);
+    client.addHandler("error", handleError);
+
+    client.registerPayloadType("connection_opened", OpenResponse);
+    client.registerPayloadType("data", DataResponse);
+    client.registerPayloadType("acknowledgement", AcknowledgementResponse);
+    client.registerPayloadType("load", DataResponse)
+
+    Object.defineProperty(
+        yanv,
+        "client",
+        {
+            value: client,
+            enumerable: true
+        }
+    )
+
+    yanv.connected = false;
+    yanv.contentLoaded = false;
     await yanv.client.connect("ws");
+}
+
+function contentHasBeenLoaded(wasLoaded, isNowLoaded) {
+    if (wasLoaded === isNowLoaded) {
+        return;
+    }
+
+    const contentToHide = $(isNowLoaded ? "#no-content-block" : "#content");
+    const contentToShow = $(isNowLoaded ? "#content" : "#no-content-block");
+
+    contentToHide.hide();
+    contentToShow.show();
+
+    console.log("The content loaded state should now be reflected");
 }
 
 function socketIsConnected(wasConnected, isNowConnected) {
@@ -37,16 +97,25 @@ function socketIsConnected(wasConnected, isNowConnected) {
         return;
     }
 
-    const hide = isNowConnected ? ".yanv-when-disconnected" : ".yanv-when-connected";
-    const show = isNowConnected ? ".yanv-when-connected" : ".yanv-when-connected";
+    const contentToHide = $(isNowConnected ? ".yanv-when-disconnected" : ".yanv-when-connected");
+    const contentToShow = $(isNowConnected ? ".yanv-when-connected" : ".yanv-when-disconnected");
 
-    $(hide).hide();
-    $(show).show();
+    contentToHide.hide();
+    contentToShow.show();
 }
 
+/**
+ *
+ * @param payload {DataResponse}
+ */
 function addDatasetView(payload) {
-    const view = new DatasetView(payload);
-    view.render("#content", "#content-tabs");
+    yanv.contentLoaded = true;
+    try {
+        const view = new DatasetView(payload);
+        view.render("#content", "#content-tabs");
+    } catch (e) {
+        yanv.contentLoaded = false;
+    }
     closeLoadingModal();
 }
 

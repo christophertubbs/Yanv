@@ -1,3 +1,10 @@
+:root {
+    --border-color: #C5C5C5;
+    --empty-container-color: #f6f6f6;
+    --toolbar-height: 33px;
+    --toolbar-background-color: #cecece;
+}
+
 #on-screen {
     height: 98vh;
     overflow: hidden;
@@ -40,4 +47,48 @@ input#open-path {
 
 #loading-modal {
     width: 50%;
+}
+
+#no-content-block {
+    border: 2px solid var(--border-color);
+    background-color: var(--empty-container-color);
+    height: 88vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.yanv-toolbar {
+    height: var(--toolbar-height);
+    background-color: var(--toolbar-background-color);
+}
+
+.yanv-toolbar button, .yanv-toolbar input {
+    height: var(--toolbar-height);
+}
+
+.yanv-table, .yanv-table-row, .yanv-table-cell {
+    border: 1px solid var(--border-color);
+    border-collapse: collapse
+}
+
+.yanv-table {
+    background-color: var(--empty-container-color);
+}
+
+.yanv-table-cell {
+    background-color: white;
+}
+
+.yanv-table-row th, .yanv-table-row td {
+    padding: 5px;
+}
+
+.yanv-key-value-table {
+    width: 100%
+}
+
+.yanv-key-table-cell {
+    font-weight: bold;
+    width: 10%
 }

@@ -1,10 +1,11 @@
 import {Request} from "./requests.js"
-import {OpenResponse, DataResponse, AcknowledgementResponse} from "./responses.js";
-import {DatasetView} from "./views/metadata.js";
 
 function sleep(ms, message) {
+    if (ms === null || ms === undefined) {
+        ms = 500;
+    }
     if (message === null || message === undefined) {
-        message = "Waiting...";
+        message = `Waiting ${ms}ms...`;
     }
 
     console.log(message);
@@ -31,14 +32,6 @@ export class YanvClient {
     
     constructor () {
         this.#id = this.#generateID();
-
-        this.addHandler(
-            "load",
-            function(payload) {
-                const view = new DatasetView(payload);
-                view.render("#content", "#content-tabs")
-            }
-        )
     }
     
     addHandler = (operation, action) => {
@@ -214,7 +207,7 @@ export class YanvClient {
 }
 
 if (!Object.hasOwn(window, "yanv")) {
-    console.log("Creating a new yanv namespace");
+    console.log("Creating a new yanv namespace from client.js");
     window.yanv = {};
 }
 

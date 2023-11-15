@@ -39,7 +39,7 @@ class Dimension(pydantic.BaseModel):
             else:
                 datatype = "int64"
                 minimum = "0"
-                maximum = str(dataset.dims[dimension_name])
+                maximum = str(dataset.dims[dimension_name] - 1)
                 attributes = {}
                 long_name = dimension_name
 

@@ -1,11 +1,10 @@
 """
-@TODO: Put a module wide description here
+Defines base classes for all messages
 """
 from __future__ import annotations
 
 import abc
 import typing
-from datetime import datetime
 
 import pydantic
 
@@ -13,7 +12,7 @@ from yanv.utilities import DEFAULT_ROW_COUNT
 from yanv.utilities import DataFilter
 
 
-class YanvMessage(abc.ABC, pydantic.BaseModel):
+class YanvMessage(pydantic.BaseModel, abc.ABC):
     """
     A common base class for all messages
     """
@@ -21,16 +20,16 @@ class YanvMessage(abc.ABC, pydantic.BaseModel):
     message_id: typing.Optional[str] = pydantic.Field(default=None, description="A trackable ID for the message")
 
 
-class DataMessage(YanvMessage):
+class DataMessage(pydantic.BaseModel):
     data_id: str = pydantic.Field(description="The ID of the data to pass back and forth")
-    columns: typing.Optional[typing.List[str]] = pydantic.Field(
-        default=None,
-        description="An explicit list of columns to return"
-    )
 
 
 class SpecificDataMessage(DataMessage):
     page_number: int = pydantic.Field(description="What page of data to retrieve")
+    columns: typing.Optional[typing.List[str]] = pydantic.Field(
+        default=None,
+        description="An explicit list of columns to return"
+    )
     row_count: typing.Optional[int] = pydantic.Field(
         default=DEFAULT_ROW_COUNT,
         description="The number of rows to return"

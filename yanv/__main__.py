@@ -1,6 +1,9 @@
 """
-@TODO: Put a module wide description here
+Runs YANV from the module level
 """
-from __future__ import annotations
+import sys
 
-import typing
+from launch_parameters import ApplicationArguments
+from server import serve
+
+serve(ApplicationArguments(*sys.argv))

@@ -4,15 +4,15 @@
 from __future__ import annotations
 
 import pathlib
-import typing
 
 from aiohttp import web
 
+from utilities.common import local_only
 from yanv.utilities.common import get_html_response
 
 INDEX_PATH = (pathlib.Path(__file__).parent.parent / "static" / "templates" / "index.html").resolve()
 
 
+@local_only
 async def handle_index(request: web.Request) -> web.Response:
-    print("Got into the index view")
     return get_html_response(INDEX_PATH)

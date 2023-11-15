@@ -5,7 +5,7 @@
         <title>Yanv</title>
         <script>
             if (!Object.hasOwn(window, 'yanv')) {
-                console.log("Creating a new yanv namespace");
+                console.log("Creating a new yanv namespace from index.html");
                 window.yanv = {};
             }
         </script>
@@ -31,9 +31,13 @@
                 <input class="yanv-when-disconnected" type="text" id="connection-path" value="ws">
                 <button class="yanv-when-disconnected" id="connect-button">Connect</button>
             </div>
+            <div id="no-content-block">
+                <h1>
+                    No files have been loaded.
+                </h1>
+            </div>
             <div id="content">
                 <ul id="content-tabs">
-
                 </ul>
             </div>
         </div>

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from aiohttp import web
 
+from utilities.common import local_only
 from yanv.utilities import mimetypes
 
 RESOURCE_DIRECTORY = pathlib.Path(__file__).parent.parent / "static"
@@ -32,7 +33,16 @@ class RouteInfo:
     handler: typing.Callable[[web.Request], typing.Coroutine[typing.Any, typing.Any, web.Response]]
     name: typing.Optional[str]
 
+    def is_local_only(self) -> bool:
+        return getattr(self.handler, "local_only", False)
+
     def register_get(self, application: web.Application):
+        if not self.is_local_only():
+            raise Exception(
+                f"Only local views may be registered - the view for {self.path} isn't local only. "
+                f"Please decorate it with '@local_only'"
+            )
+
         application.add_routes([
             web.get(self.path, handler=self.handler)
         ])
@@ -46,6 +56,7 @@ def get_resource_directory(resource_type: str) -> pathlib.Path:
     return RESOURCE_MAP[resource_type]
 
 
+@local_only
 async def get_resource(request: web.Request) -> web.Response:
     resource_type: str = request.match_info['resource_type']
 
@@ -73,6 +84,7 @@ async def get_resource(request: web.Request) -> web.Response:
     return web.HTTPNotFound(text=f"No resource was found at '{resource_path}'")
 
 
+@local_only
 async def get_favicon(request: web.Request) -> web.Response:
     return web.Response(
         body=FAVICON_PATH.read_bytes()
@@ -86,4 +98,10 @@ RESOURCE_ROUTES = [
 
 def register_resource_handlers(application: web.Application):
     for route in RESOURCE_ROUTES:
+        if not route.is_local_only():
+            raise Exception(
+                f"Only local views may be registered - the view for {route.path} isn't local only. "
+                f"Please decorate it with '@local_only'"
+            )
+
         route.register_get(application=application)

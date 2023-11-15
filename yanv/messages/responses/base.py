@@ -16,10 +16,6 @@ class YanvResponse(YanvMessage):
     ...
 
 
-class YanvDataResponse(DataMessage):
-    ...
-
-
 class OpenResponse(YanvResponse):
     operation: typing.Literal['connection_opened'] = pydantic.Field(default="connection_opened")
 

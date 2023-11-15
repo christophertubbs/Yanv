@@ -17,6 +17,7 @@ from aiohttp import WSMessage
 from aiohttp import web
 
 from messages.responses import invalid_message_response
+from utilities.common import local_only
 from yanv.backend.base import BaseBackend
 from yanv.backend.file import FileBackend
 from yanv.messages.base import YanvMessage
@@ -24,12 +25,11 @@ from yanv.messages.requests import FileSelectionRequest
 from yanv.messages.requests import MasterRequest
 from yanv.messages.requests import YanvRequest
 from yanv.messages.responses import ErrorResponse
-from yanv.messages.responses import YanvResponse
 from yanv.messages.responses.base import AcknowledgementResponse
 from yanv.messages.responses.base import OpenResponse
 from yanv.messages.responses.data import YanvDataResponse
 
-CONNECTION_ID_LENGTH = 5
+CONNECTION_ID_LENGTH = 10
 CONNECTION_ID_CHARACTER_SET = string.hexdigits
 
 REQUEST_TYPE = typing.TypeVar("REQUEST_TYPE", bound=YanvRequest, covariant=True)
@@ -115,6 +115,7 @@ async def handle_message(connection: web.WebSocketResponse, message: typing.Unio
     await connection.send_json(response.model_dump())
 
 
+@local_only
 async def socket_handler(request: web.Request) -> web.WebSocketResponse:
     connection = web.WebSocketResponse()
 
@@ -123,14 +124,13 @@ async def socket_handler(request: web.Request) -> web.WebSocketResponse:
     await connection.prepare(request=request)
     state = SocketState()
 
-    print(f"Connected to socket {connection_id} from {request.host}")
+    print(f"Connected to socket {connection_id} from {request.remote}")
 
     open_response = OpenResponse()
 
     await connection.send_json(open_response.model_dump())
 
     async for message in connection:  # type: WSMessage
-        print(message)
         await handle_message(connection, message=message.data, state=state)
 
     print(f"Connection to Socket {connection_id} closing")
