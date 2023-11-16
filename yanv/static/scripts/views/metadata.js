@@ -45,6 +45,10 @@ export class DatasetView {
         this.tabLink.click();
     }
 
+    get #tabID() {
+        return `${this.data_id}-tab`
+    }
+
     /**
      * Add a tab for this dataset in the set of tabs
      *
@@ -54,12 +58,12 @@ export class DatasetView {
         const tabs = $(tabSelector);
 
         // Only add this tab if there isn't already one like it
-        if ($(`${tabSelector} li#${this.data_id}-tab`).length === 0) {
+        if ($(`${tabSelector} li#${this.#tabID}`).length === 0) {
             /**
              * @type {HTMLLIElement}
              */
             const tab = document.createElement("li")
-            tab.id = `${this.data_id}-tab`;
+            tab.id = this.#tabID
 
             /**
              *
@@ -76,9 +80,16 @@ export class DatasetView {
                 tabLink.innerText = this.data_id;
             }
 
+            const tabCloseButton = document.createElement("span");
+            tabCloseButton.className = "ui-icon ui-icon-close";
+            tabCloseButton.dataset['data_id'] = this.data_id
+            tabCloseButton.dataset['container_selector'] = `#${this.data_id}`
+            tabCloseButton.dataset['tab_selector'] = `#${this.#tabID}`
+
             this.tabLink = tabLink;
 
             tab.appendChild(tabLink);
+            tab.appendChild(tabCloseButton);
             tabs.append(tab);
         }
     }
@@ -105,7 +116,7 @@ export class DatasetView {
             throw new Error(`No tab list could be found at '${tabListSelector}' - a new view cannot be rendered`)
         }
 
-        if ($(`#${newTabID}`).length > 0) {
+        if ($(`#${this.data_id}`).length > 0) {
             console.warn(`There is already a view for dataset ${this.data_id}`)
         }
 
@@ -123,7 +134,8 @@ export class DatasetView {
         ]
 
         newTab.className = containerCSSClasses.join(" ");
-        newTab.attributes['data-dataset'] = this.data_id;
+        newTab.dataset['dataset'] = this.data_id;
+        newTab.dataset['tab'] = this.#tabID;
 
         /**
          *
@@ -191,22 +203,11 @@ export class DatasetView {
         )
 
         if (globalAttributes) {
-            const globalAttributesField = document.createElement("fieldset");
-            globalAttributesField.id = `${this.data_id}-global-fields`;
-            const cssClasses = [
-                "yanv-global-attributes-fieldset"
-            ];
-            globalAttributesField.className = cssClasses.join(" ");
-
-            const globalAttributeLegend = document.createElement("legend")
-            globalAttributeLegend.id = `${this.data_id}-global-attributes-legend`
-            const legendCSSClasses = [
-                'yanv-legend',
-                'yanv-global-attributes-legend'
-            ]
-            globalAttributeLegend.className = legendCSSClasses.join(" ");
-            globalAttributeLegend.innerText = "Global Attributes"
-            globalAttributesField.appendChild(globalAttributeLegend);
+            const globalAttributesField = createFieldSet(
+                `${this.data_id}-global-fields`,
+                "global-attributes",
+                "Global Attributes"
+            );
             globalAttributesField.appendChild(globalAttributes);
             innerContainer.appendChild(globalAttributesField);
         }
@@ -220,7 +221,8 @@ export class DatasetView {
         });
 
         this.#addTab(tabListSelector);
-        tabContainer.tabs("refresh");
+        //tabContainer.tabs("refresh");
+        yanv.refreshTabs()
 
         this.open();
     }
@@ -233,19 +235,11 @@ export class DatasetView {
     renderDimensions = (dimensions) => {
         const dimensionsID = `${this.data_id}-dimensions`;
 
-        /**
-         * @type {HTMLFieldSetElement}
-         */
-        const dimensionsFieldset = document.createElement("fieldset")
-        dimensionsFieldset.id = dimensionsID;
-        dimensionsFieldset.className = "yanv-dimensions-fields yanv-fields";
-        dimensionsFieldset.name = "Dimensions";
-
-        const legend = document.createElement("legend");
-        legend.className = "yanv-legend"
-        legend.textContent = "Dimensions";
-
-        dimensionsFieldset.appendChild(legend);
+        const dimensionsFieldset = createFieldSet(
+            dimensionsID,
+            "dimensions-fields",
+            "Dimensions"
+        )
 
         const rows = dimensions.map(
             (dimension) => {
@@ -264,7 +258,7 @@ export class DatasetView {
 
         const tableID = `${dimensionsID}-table`
 
-        const dimTable = createTable(
+        const dimensionsTable = createTable(
             tableID,
             "Dimensions",
             rows,
@@ -277,154 +271,7 @@ export class DatasetView {
             }
         )
 
-        /**
-         * @type {HTMLTableElement}
-         */
-        const dimensionsTable = document.createElement("table")
-        dimensionsTable.className = "yanv-dimensions-table"
-        dimensionsTable.id = tableID;
-
-        let columns = [];
-        let isFirstDimension = true;
-        for (let dimension of dimensions) {
-            /**
-             * @type {string[]}
-             */
-            let thisDimensionsColumns = Object.keys(dimension.attributes);
-
-            if (isFirstDimension) {
-                columns = thisDimensionsColumns;
-                isFirstDimension = false;
-                continue;
-            }
-
-            let columnsToRemove = [];
-            for (let column of columns) {
-                if (!thisDimensionsColumns.includes(column)) {
-                    columnsToRemove.push(column);
-                }
-            }
-
-            for (let column of columnsToRemove) {
-                let columnIndex = columns.indexOf(column);
-                let newBeginning = columns.splice(0, columnIndex);
-                columns = newBeginning.concat(columns.splice(1));
-            }
-        }
-
-        /**
-         * @type {HTMLTableRowElement}
-         */
-        const header = document.createElement("tr")
-        header.id = `${dimensionsID}-header`;
-        header.className = "yanv-header-row yanv-dimensions-header"
-
-        const nameHeaderCell = document.createElement("th");
-        nameHeaderCell.textContent = "Name";
-        nameHeaderCell.attributes['data-column'] = 'name';
-
-        const typeHeaderCell = document.createElement("th");
-        typeHeaderCell.textContent = "Data Type";
-        typeHeaderCell.attributes['data-column'] = 'datatype';
-
-        const minimumCell = document.createElement("th");
-        minimumCell.textContent = "Minimum Value";
-        minimumCell.attributes['data-column'] = "minimum";
-
-        const maximumCell = document.createElement("th");
-        maximumCell.textContent = "Maximum Value";
-        maximumCell.attributes['data-column'] = "maximum";
-
-        const countHeaderCell = document.createElement("th");
-        countHeaderCell.textContent = "Count";
-        countHeaderCell.attributes['data-column'] = 'count';
-
-        header.appendChild(nameHeaderCell);
-        header.appendChild(typeHeaderCell);
-        header.appendChild(minimumCell);
-        header.appendChild(maximumCell);
-        header.appendChild(countHeaderCell);
-
-        for (let column of columns) {
-            let headerCell = document.createElement("th");
-            headerCell.textContent = column;
-            headerCell.attributes['data-column'] = column;
-
-            header.appendChild(headerCell);
-        }
-
-        dimensionsTable.appendChild(header);
-
-        let rowID = 0;
-        for (let dimension of dimensions) {
-            let row = document.createElement("tr")
-            row.id = `${dimensionsID}-${dimension.name}`;
-            let classList = [
-                `yanv-${rowID % 2 === 0 ? "odd" : "even"}-row`,
-                'yanv-row',
-                "yanv-dimension"
-            ]
-            row.className = classList.join(" ");
-
-            row.attributes['data-dimension'] = rowID;
-            row.attributes['data-name'] = dimension.name;
-            row.attributes['data-datatype'] = dimension.datatype;
-            row.attributes['data-minimum'] = dimension.minimum;
-            row.attributes['data-maximum'] = dimension.maximum;
-            row.attributes['data-count'] = dimension.count;
-
-            let nameCell = document.createElement("td")
-            nameCell.id = `${dimensionsID}-${dimension.name}-name`;
-            nameCell.innerText = dimension.name;
-            nameCell.attributes['data-column'] = 'name';
-
-            row.appendChild(nameCell);
-
-            let typeCell = document.createElement("td")
-            typeCell.id = `${dimensionsID}-${dimension.name}-data-type`;
-            typeCell.innerText = dimension.datatype;
-            typeCell.attributes['data-column'] = "datatype";
-
-            row.appendChild(typeCell);
-
-            let minimumCell = document.createElement("td");
-            minimumCell.id = `${dimensionsID}-${dimension.name}-minimum`;
-            minimumCell.innerText = dimension.minimum;
-            minimumCell.attributes['data-column'] = 'minimum';
-
-            row.appendChild(minimumCell)
-
-            let maximumCell = document.createElement("td")
-            maximumCell.id = `${dimensionsID}-${dimension.name}-maximum`
-            maximumCell.innerText = dimension.maximum;
-            maximumCell.attributes['data-column'] = 'maximum';
-
-            row.appendChild(maximumCell);
-
-            let countCell = document.createElement("td");
-            countCell.id = `${dimensionsID}-${dimension.name}-count`
-            countCell.innerText = dimension.count;
-            countCell.attributes['data-column'] = 'count';
-
-            row.appendChild(countCell);
-
-            for (let column of columns) {
-                let cell = document.createElement("td")
-                cell.id = `${dimensionsID}-${dimension.name}-${column}`;
-                cell.innerText = dimension.attributes[column];
-                cell.attributes['data-column'] = column;
-
-                row.attributes[`data-${column}`] = dimension.attributes[column];
-                row.appendChild(cell);
-            }
-
-            dimensionsTable.appendChild(row);
-
-            rowID++;
-        }
-
-        dimensionsFieldset.appendChild(dimTable);
-        //dimensionsFieldset.appendChild(dimensionsTable);
+        dimensionsFieldset.appendChild(dimensionsTable);
 
 
         return dimensionsFieldset;

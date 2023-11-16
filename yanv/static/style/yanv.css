@@ -3,6 +3,7 @@
     --empty-container-color: #f6f6f6;
     --toolbar-height: 33px;
     --toolbar-background-color: #cecece;
+    font-family: sans-serif;
 }
 
 #on-screen {
@@ -11,7 +12,7 @@
 }
 
 .yanv-tab.yanv-container {
-    height: 80vh !important;
+    height: 75vh !important;
     width: 100%;
     display: flex;
 }
@@ -52,7 +53,7 @@ input#open-path {
 #no-content-block {
     border: 2px solid var(--border-color);
     background-color: var(--empty-container-color);
-    height: 88vh;
+    height: 84vh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -82,6 +83,7 @@ input#open-path {
 
 .yanv-table-row th, .yanv-table-row td {
     padding: 5px;
+    cursor: pointer;
 }
 
 .yanv-key-value-table {
@@ -91,4 +93,8 @@ input#open-path {
 .yanv-key-table-cell {
     font-weight: bold;
     width: 10%
+}
+
+.ui-icon-close {
+    cursor: pointer;
 }

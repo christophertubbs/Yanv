@@ -42,7 +42,7 @@ export function createFieldSet(elementID, name, title) {
      * @type {HTMLFieldSetElement}
      */
     const fieldSet = document.createElement("fieldset")
-    fieldSet.attributes['data-name'] = name;
+    fieldSet.dataset['name'] = name;
     fieldSet.id = cleanID;
 
     const fieldsetCSSClasses = [
@@ -164,7 +164,7 @@ export function createTable(elementID, name, rows, columns, titles, includeHeade
              * @type {HTMLTableCellElement}
              */
             let headerCell = document.createElement("th");
-            headerCell.attributes['data-column'] = column;
+            headerCell.dataset['column'] = column;
 
             if (titles && Object.keys(titles).includes(column)) {
                 headerCell.innerText = titles[column];
@@ -207,7 +207,7 @@ export function createTable(elementID, name, rows, columns, titles, includeHeade
             `yanv-${rowID % 2 === 0 ? "odd" : "even"}-table-row`,
         ]
         row.className = (baseRowCSS.concat(specificRowCSS)).join(" ");
-        row.attributes['data-row-number'] = rowID;
+        row.dataset['row_number'] = rowID;
         row.id = `${cleanID}-${rowID}`;
 
         for (let column of columns) {
@@ -223,7 +223,7 @@ export function createTable(elementID, name, rows, columns, titles, includeHeade
                 `yanv-${cleanColumnName}-table-cell`
             ]
             cell.className = (baseCellCSS.concat(specificCellCSS)).join(" ")
-            cell.attributes['data-column'] = column;
+            cell.dataset['column'] = column;
 
             let cellName = titles && Object.keys(titles).includes(column) ? titles[column] : column;
 
@@ -302,8 +302,8 @@ export function createSimpleList(elementID, name, entries, ordered) {
         let listItem = document.createElement("li");
         listItem.id = `${list.id}-${listItemID}`;
         listItem.innerText = item;
-        listItem.attributes['data-value'] = item;
-        listItem.attributes['data-index'] = listItemID;
+        listItem.dataset['value'] = item;
+        listItem.dataset['index'] = listItemID;
 
         let specificListItemCSS = [];
         listItem.className = (baseListItemCSS.concat(specificListItemCSS)).join(" ");

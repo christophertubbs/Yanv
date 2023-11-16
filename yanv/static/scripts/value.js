@@ -177,24 +177,23 @@ export class BooleanValue {
     }
 }
 
-const ListValueAction = Object.freeze({
+export const ListValueAction = Object.freeze({
     DELETE: "delete",
-    ADD: "add"
+    ADD: "add",
+    MODIFY: "modify"
 });
 
 /**
  * Event data that will be passed when a ListValue is mutated
  */
-class ListValueEvent {
+export class ListValueEvent {
     #action
-    #index
     #modifiedValue
-    #values
+    #data
 
-    constructor (action, values, index, modifiedValue) {
+    constructor (data, action, modifiedValue) {
         this.#action = action;
-        this.#values = values;
-        this.#index = index;
+        this.#data = data;
         this.#modifiedValue = modifiedValue;
     }
 
@@ -202,12 +201,8 @@ class ListValueEvent {
         return this.#action;
     }
 
-    get index() {
-        return this.#index;
-    }
-
-    get values() {
-        return this.#values;
+    get data() {
+        return this.#data;
     }
 
     get modifiedValue() {
@@ -218,7 +213,7 @@ class ListValueEvent {
 export class ListValue {
 
     /**
-     * @type {any[]}
+     * @type {Array}
      */
     #values = []
 
@@ -228,21 +223,118 @@ export class ListValue {
      */
     #handlers = []
 
+    get data() {
+        return this.#values;
+    }
+
     /**
      *
-     * @param initialValue {any[]|undefined}
+     * @param initialValue {Array|undefined}
      * @param handlers{(event: ListValueEvent) => any}
      */
     constructor (initialValue, ...handlers) {
         if (Array.isArray(initialValue)) {
             this.#values.push(...initialValue);
         }
-
-        for (let handler of handlers) {
-            if (typeof handler === 'function') {
-                this.#handlers.push(handler);
-            }
+        else {
+            this.#values.push(initialValue);
         }
+
+        let handlerIndex = 0;
+        for (; handlerIndex < handlers.length; handlerIndex++) {
+            let handler = handlers[handlerIndex];
+
+            if (typeof handler === 'function') {
+                break;
+            }
+
+            this.#values.push(handler);
+        }
+
+        if (handlers.length > 0) {
+            this.addHandlers(...handlers.splice(handlerIndex))
+        }
+
+        // Return a Proxy in order to allow list indexing
+        return new Proxy(
+            this,
+            {
+                get(target, name) {
+                    if (name in target) {
+                        return target[name];
+                    }
+
+                    const values = target.data;
+
+                    if (typeof name !== 'number') {
+                        throw new TypeError(`ListValues may only be indexed via numbers`)
+                    }
+
+                    // Support negative indexing
+                    if (name < 0) {
+                        name = values.length + name;
+                    }
+
+                    return values[name];
+                },
+                set(target, name, value) {
+                    if (name in target) {
+                        target[name] = value;
+                    }
+                    else {
+                        if (typeof name !== 'number') {
+                            throw new TypeError(`ListValues may only be indexed via numbers`)
+                        }
+
+                        const values = target.data;
+
+                        // Support negative indexing
+                        if (name < 0) {
+                            name = values.length + name;
+                        }
+
+                        values[name] = value;
+                    }
+                    return true;
+                }
+            }
+        );
+    }
+
+    addHandlers = (...handlers) => {
+        if (handlers.length === 0) {
+            return this;
+        }
+
+        const nonHandlers = handlers.filter((handler) => typeof handler !== 'function');
+
+        if (nonHandlers.length > 0) {
+            throw new Error(`Cannot add handlers - ${nonHandlers.join(", ")} isn't/aren't functions`)
+        }
+
+        this.#handlers.push(...handlers);
+        return this;
+    }
+
+    #fire = (action, modifiedValues) => {
+        const eventData = new ListValueEvent(
+            this,
+            action,
+            modifiedValues
+        )
+        this.#handleUpdate(eventData);
+    }
+
+    #thisWasModified = () => {
+        this.#fire(ListValueAction.MODIFY, this.#values);
+    }
+
+    #valueWasAdded = (addedValues) => {
+        this.#fire(ListValueAction.ADD, addedValues);
+    }
+
+    #valueWasRemoved = (removedValues) => {
+        this.#fire(ListValueAction.DELETE, removedValues);
     }
 
     get values() {
@@ -256,7 +348,7 @@ export class ListValue {
     #handleUpdate = (event) => {
         for (let handler of this.#handlers) {
             try {
-                handler(this.#values);
+                handler(event);
             }
             catch (e) {
                 console.error(e);
@@ -276,26 +368,21 @@ export class ListValue {
         return this.#values.at(index);
     }
 
+    copyWithin = (target, start, end) => {
+        this.#values.copyWithin(target, start, end);
+        this.#thisWasModified()
+        return this;
+    }
+
     push = (...other) => {
-        const action = ListValueAction.ADD;
-        const index = this.#values.length;
         const amountChanged = this.#values.push(...other);
-        const event = new ListValueEvent(
-            action,
-            this.#values,
-            index,
-            other.length === 1 ? other[0] : other
-        );
-        this.#handleUpdate(event);
+        this.#valueWasAdded(other.length === 1 ? other[0] : other)
         return amountChanged;
     }
 
     pop = () => {
         const modifiedValue = this.#values.pop();
-        const index = this.#values.length;
-        const action = ListValueAction.DELETE;
-        const event = new ListValueEvent(action, this.#values, index, modifiedValue);
-        this.#handleUpdate(event);
+        this.#valueWasRemoved(modifiedValue)
         return modifiedValue;
     }
 
@@ -303,16 +390,130 @@ export class ListValue {
         return this.#values.entries();
     }
 
-    filter = (predicate) => {
-        return this.#values.filter(predicate)
+    every = (predicate, thisArg) => {
+        return this.#values.every(predicate, thisArg);
+    }
+
+    fill = (value, start, end) => {
+        this.#values.fill(value, start, end);
+        this.#thisWasModified()
+        return this;
+    }
+
+    find = (predicate, thisArg) => {
+        return this.#values.find(predicate, thisArg);
+    }
+
+    exists = (predicate, thisArg) => {
+        const matchingValue = this.find(predicate, thisArg);
+        return matchingValue !== undefined;
+    }
+
+    findIndex = (predicate, thisArg) => {
+        return this.#values.findIndex(predicate, thisArg)
+    }
+
+    findLast = (predicate, thisArg) => {
+        return this.#values.findLast(predicate, thisArg);
+    }
+
+    findLastIndex = (predicate, thisArg) => {
+        return this.#values.findLastIndex(predicate, thisArg);
+    }
+
+    flat = (depth) => {
+        return new ListValue(this.#values.flat(depth), ...this.#handlers);
+    }
+
+    flattenInPlace = (depth) => {
+        this.#values = this.#values.flat(depth);
+        this.#thisWasModified();
+        return this;
+    }
+
+    flatMap = (callbackFn, thisArg) => {
+        return new ListValue(this.#values.flatMap(callbackFn, thisArg), ...this.#handlers);
+    }
+
+    flatMapInPlace = (callbackFn, thisArg) => {
+        this.#values = this.#values.flatMap(callbackFn, thisArg);
+        this.#thisWasModified();
+        return this;
+    }
+
+    forEach = (callbackFn, thisArg) => {
+        this.#values.forEach(callbackFn, thisArg);
+    }
+
+    static from = (arrayLike, mapFn, thisArg) => {
+        return new ListValue(Array.from(arrayLike, mapFn, thisArg));
+    }
+
+    /**
+     *
+     * @param arrayLike
+     * @param mapFn
+     * @param thisArg
+     * @returns {Promise}
+     */
+    static fromAsync = (arrayLike, mapFn, thisArg) => {
+        return Array.fromAsync(arrayLike, mapFn, thisArg).then((newArray) => new ListValue(newArray));
+    }
+
+    filter = (predicate, thisArg) => {
+        return new ListValue(this.#values.filter(predicate, thisArg), ...this.#handlers)
+    }
+
+    filterInPlace = (predicate, thisArg) => {
+        this.#values = this.#values.filter(predicate, thisArg);
+        this.#thisWasModified();
+        return this;
+    }
+
+    includes = (searchElement, fromIndex) => {
+        return this.#values.includes(searchElement, fromIndex);
+    }
+
+    indexOf = (searchElement, fromIndex) => {
+        return this.#values.indexOf(searchElement, fromIndex);
+    }
+
+    static isArray = (value) => {
+        return value instanceof ListValue || Array.isArray(value);
+    }
+
+    join = (separator) => {
+        return this.#values.join(separator);
+    }
+
+    keys = () => {
+        return this.#values.keys();
+    }
+
+    lastIndexOf = (searchElement, fromIndex) => {
+        return this.#values.lastIndexOf(searchElement, fromIndex);
     }
 
     map = (callbackFn, thisArg) => {
-        return this.#values.map(callbackFn, thisArg);
+        return new ListValue(this.#values.map(callbackFn, thisArg), ...this.#handlers);
     }
 
-    reduce = (callbackFn) => {
+    mapInPlace = (callbackFn, thisArg) => {
+        this.#values = this.#values.map(callbackFn, thisArg);
+        this.#thisWasModified();
+        return this;
+    }
+
+    static of(...element) {
+        return new ListValue(element);
+    }
+
+    reduce = (callbackFn, initialValue) => {
         return this.#values.reduce(callbackFn);
+    }
+
+    reduceRight = (callbackFn, initialValue) => {
+        return this.#values.reduceRight(callbackFn, initialValue);
     }
 
     values = () => {
@@ -320,11 +521,21 @@ export class ListValue {
     }
 
     reverse = () => {
-        return this.#values.reverse();
+        this.#values.reverse();
+        this.#thisWasModified()
+        return this;
+    }
+
+    shift = () => {
+        const removedElement = this.#values.shift();
+        this.#valueWasRemoved(removedElement);
+        return removedElement;
     }
 
     sort = (compareFn) => {
-        return this.#values.sort(compareFn);
+        this.#values.sort()
+        this.#thisWasModified();
+        return this;
     }
 
     some = (predicate, thisArg) => {
@@ -332,11 +543,29 @@ export class ListValue {
     }
 
     slice = (start, end) => {
-        return this.#values.slice(start, end);
+        return new ListValue(this.#values.slice(start, end), ...this.#handlers);
     }
 
     splice = (start, deleteCount, ...items) => {
-        const splicedData = this.#values.splice(start, deleteCount)
+        const splicedData = this.#values.splice(start, deleteCount);
+        this.#valueWasRemoved(splicedData);
+        return new ListValue(splicedData, ...this.#handlers);
+    }
+
+    toLocaleString = (locales, options) => {
+        return this.#values.toLocaleString();
+    }
+
+    toReversed = () => {
+        return new ListValue(this.#values.toReversed(), ...this.#handlers);
+    }
+
+    toSorted = (compareFn) => {
+        return new ListValue(this.#values.toSorted(), ...this.#handlers);
+    }
+
+    toSpliced = (start, deleteCount, ...item) => {
+        return new ListValue(this.#values.toSpliced(start, deleteCount, ...item), ...this.#handlers);
     }
 
     valueOf() {
@@ -346,4 +575,105 @@ export class ListValue {
     toString() {
         return this.#values.toString();
     }
+
+    unshift = (...element) => {
+        this.#values.unshift(...element);
+        this.#valueWasAdded(element);
+        return this;
+    }
+
+    removeAt = (index) => {
+        if (!(index in this.#values)) {
+            throw new RangeError(`There is no index of ${index} in this list. A value cannot be removed.`);
+        }
+
+        if (index < 0) {
+            index = this.#values.length + index;
+        }
+
+        const removedValue = this.#values[index];
+
+        if (removedValue === undefined) {
+            return this;
+        }
+
+        this.#values = this.#values.splice(0, index).concat(this.#values.splice(1));
+        this.#valueWasRemoved(removedValue);
+        return this;
+
+    }
+
+    isEmpty = () => {
+        return this.#values.length === 0;
+    }
+
+    remove = (element) => {
+        const index = this.findIndex((entry) => entry === element);
+        if (index >= 0) {
+            this.removeAt(index);
+        }
+        return this;
+    }
+
+    removeBy = (predicate, thisArg) => {
+        const elementsToRemove = this.filter(predicate, thisArg);
+        elementsToRemove.forEach(this.remove);
+        return this;
+    }
+
+    with = (index, value) => {
+        return new ListValue(this.#values.with(index, value), ...this.#handlers);
+    }
+
+    [Symbol.iterator]() {
+        let index = 0;
+
+        return {
+            next() {
+                if (index < this.#values.length) {
+                    return {
+                        value: this.#values[index],
+                        done: false
+                    }
+                }
+                else {
+                    return {
+                        done: true
+                    }
+                }
+            }
+        }
+    }
+
+    [Symbol.unscopables] = {
+        at: true,
+        copyWithin: true,
+        entries: true,
+        fill: true,
+        find: true,
+        findIndex: true,
+        findLast: true,
+        findLastIndex: true,
+        flat: true,
+        flatMap: true,
+        includes: true,
+        keys: true,
+        toReversed: true,
+        toSorted: true,
+        toSpliced: true,
+        values: true
+    }
 }
+
+if (!('yanv' in window)) {
+    if (!Object.hasOwn(window, 'yanv')) {
+        console.log("Creating a new yanv namespace from value.js");
+        window.yanv = {};
+    }
+}
+
+yanv.EventValue = EventValue;
+yanv.BooleanValue = BooleanValue;
+yanv.ListValue = ListValue;
+yanv.ListValueAction = ListValueAction;
+yanv.ListValueEvent = ListValueEvent;
