@@ -4,40 +4,43 @@ Yet Another Netcdf Viewer
 Yanv is a netcdf viewer implemented via python that will launch a server providing web access to visualizations for one or 
 more netcdf files via commandline and possibly simple application (long term goal).
 
-Basic use should look like:
+Basic usage is:
 
 ```shell
-$ python3 -m yanv path/to/file1.nc path/to/fileN.nc
+$ python -m yanv
+Access Yanv from http://0.0.0.0:10324/
+======== Running on http://0.0.0.0:10324 ========
+(Press CTRL+C to quit)
 
-The following netcdf files are viewable at http://127.0.0.1:9234
-    path/to/file1.nc
-    path/to/file2.nc
 ```
-
-The port will be randomized if not given via cli parameters.
-
-The command will also invoke the `webbrowser` library to immediately launch the announced viewable page in the default browser.
+<p>
+    <img src="YanvScreen.png" alt="A screenshot of Yanv in use"/>
+</p>
 
 ## Features
 
 The web view offers 4 major functions:
 
-1. Paginated Grids for each file
-2. The ability to perform basic queries on each file
-3. The ability to join your files and create intermediate data such as new columns
-4. The ability to generate different types of interactive graphs
+- [x] Open and view multiple files at a time
+- [x] Explore dimension data
+- [x] Explore variable data
+- [ ] Create scatter plots for vector data
 
 ## Long term goals
 
-"Double click to launch" app functionality along with being able to select/load your datasets via the web view are 
-desirable in the long term but out of scope until the core functions are complete.
+* Double-click to launch
+* Map plotting
+* Data querying
+* Data transformations
+* Simple data manipulation (such as joining two files)
+* Other data types, such as CSV (to provide another avenue for data manipulation, such as providing further metadata 
+for variables)
 
 ## Important Dependencies
 
-This will rely on:
+This relies on:
 
 - Plotly
-- Pandas
 - Xarray
 - websockets
 - aiohttp

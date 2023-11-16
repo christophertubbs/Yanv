@@ -16,8 +16,8 @@ import pandas
 from aiohttp import WSMessage
 from aiohttp import web
 
-from messages.responses import invalid_message_response
-from utilities.common import local_only
+from yanv.messages.responses import invalid_message_response
+from yanv.utilities.common import local_only
 from yanv.backend.base import BaseBackend
 from yanv.backend.file import FileBackend
 from yanv.messages.base import YanvMessage

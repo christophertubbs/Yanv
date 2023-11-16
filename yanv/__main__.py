@@ -3,7 +3,7 @@ Runs YANV from the module level
 """
 import sys
 
-from launch_parameters import ApplicationArguments
-from server import serve
+from yanv.launch_parameters import ApplicationArguments
+from yanv.server import serve
 
-serve(ApplicationArguments(*sys.argv))
+serve(ApplicationArguments(*sys.argv[1:]))

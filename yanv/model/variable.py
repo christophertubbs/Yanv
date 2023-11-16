@@ -11,7 +11,7 @@ import numpy
 import pydantic
 import xarray
 
-from utilities.netcdf import get_random_values
+from yanv.utilities.netcdf import get_random_values
 from yanv.model.dimension import Dimension
 
 STRING_PATTERN = re.compile(r"S\d+$")

@@ -11,16 +11,16 @@ from aiohttp import web
 from aiohttp.web_routedef import AbstractRoute
 from aiohttp.web_routedef import RouteDef
 
-from application_details import ALLOW_REMOTE
-from application_details import INDEX_PAGE
-from handlers import navigate
-from launch_parameters import ApplicationArguments
-from utilities import common
+from yanv.application_details import ALLOW_REMOTE
+from yanv.application_details import INDEX_PAGE
+from yanv.handlers import navigate
+from yanv.launch_parameters import ApplicationArguments
+from yanv.utilities import common
 from yanv.handlers import handle_index
 from yanv.handlers import register_resource_handlers
 from yanv.handlers import socket_handler
 
-from application_details import APPLICATION_NAME
+from yanv.application_details import APPLICATION_NAME
 
 
 class LocalApplication(web.Application):

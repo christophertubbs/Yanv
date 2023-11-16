@@ -7,7 +7,7 @@ import pathlib
 
 from aiohttp import web
 
-from utilities.common import local_only
+from yanv.utilities.common import local_only
 from yanv.utilities.common import get_html_response
 
 INDEX_PATH = (pathlib.Path(__file__).parent.parent / "static" / "templates" / "index.html").resolve()

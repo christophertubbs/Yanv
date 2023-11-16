@@ -7,7 +7,7 @@ from pathlib import Path
 
 from aiohttp import web
 
-from utilities.common import local_only
+from yanv.utilities.common import local_only
 
 
 @local_only

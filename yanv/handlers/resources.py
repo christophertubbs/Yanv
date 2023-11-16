@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from aiohttp import web
 
-from utilities.common import local_only
+from yanv.utilities.common import local_only
 from yanv.utilities import mimetypes
 
 RESOURCE_DIRECTORY = pathlib.Path(__file__).parent.parent / "static"
