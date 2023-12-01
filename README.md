@@ -17,6 +17,12 @@ Access Yanv from http://0.0.0.0:10324/
     <img src="YanvScreen.png" alt="A screenshot of Yanv in use"/>
 </p>
 
+## What This is Not
+
+This is not meant to be a web application. Steps are in place to prevent this from running across a network. This application investigates and lets you see items and structures on
+your filesystem. Allowing external access will reveal the file structure of your machine and is highly discouraged. 
+$${\color{red}\textbf{Run} \space \textbf{on} \space \textbf{a} \space \textbf{network} \space \textbf{at} \space \textbf{your} \space \textbf{own} \space \textbf{risk}}$$
+
 ## Features
 
 The web view offers 4 major functions:
