@@ -24,7 +24,7 @@ class Dimension(pydantic.BaseModel):
     def from_xarray(cls, dataset: xarray.Dataset) -> typing.Sequence[Dimension]:
         dimensions: typing.List[Dimension] = list()
 
-        for dimension_name, count in dataset.dims.items():
+        for dimension_name, count in dataset.sizes.items():
             variable: xarray.Variable = dataset.variables.get(dimension_name)
 
             if variable is not None:
@@ -39,7 +39,7 @@ class Dimension(pydantic.BaseModel):
             else:
                 datatype = "int64"
                 minimum = "0"
-                maximum = str(dataset.dims[dimension_name] - 1)
+                maximum = str(dataset.sizes[dimension_name] - 1)
                 attributes = {}
                 long_name = dimension_name
 

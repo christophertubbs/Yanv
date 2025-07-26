@@ -42,7 +42,7 @@ class Dataset(pydantic.BaseModel):
             variables=variables,
             dimensions=dimensions,
             attributes=attributes,
-            sources=[source]
+            sources=[source] if source is not None else []
         )
 
         if name:
