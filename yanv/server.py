@@ -6,6 +6,8 @@ from __future__ import annotations
 import sys
 import typing
 import inspect
+import logging
+import pathlib
 
 from aiohttp import web
 from aiohttp.web_routedef import AbstractRoute
@@ -21,6 +23,20 @@ from yanv.handlers import register_resource_handlers
 from yanv.handlers import socket_handler
 
 from yanv.application_details import APPLICATION_NAME
+
+if __name__.endswith("__main__"):
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(asctime)s] %(levelname)s %(name)s %(lineno)d: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S%z"
+    )
+    aiohttp_logger: logging.Logger = logging.getLogger("aiohttp")
+    aiohttp_logger.setLevel(logging.WARNING)
+    aiohttp_access_logger: logging.Logger = logging.getLogger("aiohttp.access")
+    aiohttp_access_logger.setLevel(logging.WARNING)
+
+
+LOGGER: logging.Logger = logging.getLogger(pathlib.Path(__file__).stem)
 
 
 class LocalApplication(web.Application):

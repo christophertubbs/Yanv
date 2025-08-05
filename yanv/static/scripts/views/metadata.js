@@ -217,7 +217,8 @@ export class DatasetView {
         tabContainer.append(newTab)
 
         $(".yanv-accordion").accordion({
-            heightStyle: "content"
+            heightStyle: "content",
+            collapsible: true
         });
 
         this.#addTab(tabListSelector);

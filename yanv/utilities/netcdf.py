@@ -3,8 +3,12 @@ Utilities used to help manipulate netcdf data
 """
 from __future__ import annotations
 
+import queue
 import random
 import typing
+import logging
+import pathlib
+
 from datetime import datetime
 
 import numpy
@@ -16,6 +20,9 @@ from pandas import Timestamp
 from xarray.core.coordinates import DataArrayCoordinates
 
 _VALUE_TYPE = typing.TypeVar("_VALUE_TYPE")
+
+
+LOGGER: logging.Logger = logging.getLogger(pathlib.Path(__file__).stem)
 
 
 def variable_is_spatial(variable: xarray.DataArray) -> bool:
@@ -65,18 +72,23 @@ def variable_is_temporal(variable: xarray.DataArray) -> bool:
 
 def get_random_values(
     variable: xarray.DataArray,
-    size: int = None
+    size: int = None,
+    messages: queue.Queue[str] = None
 ) -> typing.Optional[typing.Sequence]:
     """
     Retrieve a random sample of values from a variable
 
-    :param name: The name of the variable
     :param variable: The variable to sample
     :param size: The requested amount of values to retrieve
+    :param messages: A queue of messages to return to the UI
     :return: A sequence of values from the variable
     """
     if size is None:
         size = 1
+
+    if messages is None:
+        messages = queue.Queue()
+    failure_messages: typing.Set[str] = set()
 
     max_attempts = 25
 
@@ -93,37 +105,56 @@ def get_random_values(
             new_choices = choice(variable.values, size=size)
 
             for new_value in new_choices:
-                if new_value is not None and not numpy.isnan(new_value):
-                    values.add(new_value)
+                try:
+                    if new_value is not None and not numpy.isnan(new_value):
+                        values.add(new_value)
+                except Exception as e:
+                    message: str = f"{type(e).__name__}: Ran into an error when trying to evaluate '{new_value}' for sample data from '{variable.name}': {e}"
+                    failure_messages.add(message)
+
                 if len(values) >= size:
+                    for message in failure_messages:
+                        messages.put(message)
+                        LOGGER.error(message)
                     return [value for value in values]
             attempts += 1
+        for message in failure_messages:
+            messages.put(message)
+            LOGGER.error(message)
         return [value for value in values]
 
     outer_attempts = 0
 
     while len(random_values) < size and outer_attempts < max_attempts:
-        attempts = 0
+        try:
+            attempts = 0
 
-        while attempts < max_attempts:
-            variable_coordinates = {
-                key: random.randint(0, size - 1)
-                for key, size in variable.coords.sizes.items()
-                if key != variable.coords.dims[-1]
-            }
+            while attempts < max_attempts:
+                variable_coordinates = {
+                    key: random.randint(0, size - 1)
+                    for key, size in variable.coords.sizes.items()
+                    if key != variable.coords.dims[-1]
+                }
 
-            sample_array = variable.isel(variable_coordinates)
+                sample_array = variable.isel(variable_coordinates)
 
-            random_sample = choice(sample_array, size=min(size, sample_array.size))
+                random_sample = choice(sample_array, size=min(size, sample_array.size))
 
-            for random_value in random_sample:
-                if not numpy.isnan(random_value) and random_value not in random_values:
-                    random_values.append(random_value)
-                if len(random_values) >= size:
-                    return random_values
+                for random_value in random_sample:
+                    if not numpy.isnan(random_value) and random_value not in random_values:
+                        random_values.append(random_value)
+                    if len(random_values) >= size:
+                        for message in failure_messages:
+                            messages.put(message)
+                            LOGGER.error(message)
+                        return random_values
 
-            attempts += 1
-
+                attempts += 1
+        except Exception as e:
+            failure_messages.add(f"Ran into an error when trying to evaluate sample data from '{variable.name}': {e}")
         outer_attempts += 1
 
+    for message in failure_messages:
+        messages.put(message)
+        LOGGER.error(message)
     return random_values
