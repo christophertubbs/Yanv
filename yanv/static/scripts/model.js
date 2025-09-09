@@ -61,9 +61,13 @@ export class Variable {
      * @member {{string: any}}
      */
     attributes
+    /**
+     * @member {{string: any}}
+     */
+    encoding
     examples
 
-    constructor ({name, datatype, count, dimensions, long_name, units, attributes, examples}) {
+    constructor ({name, datatype, count, dimensions, long_name, units, attributes, examples, encoding}) {
         this.name = name;
         this.datatype = datatype;
         this.count = count;
@@ -72,6 +76,7 @@ export class Variable {
         this.units = units
         this.attributes = attributes
         this.examples = examples
+        this.encoding = encoding;
     }
 }
 

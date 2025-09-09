@@ -7,6 +7,8 @@ import inspect
 import typing
 import re
 
+import collections.abc as generic
+
 import numpy
 import pydantic
 import xarray
@@ -17,12 +19,52 @@ from yanv.model.dimension import Dimension
 STRING_PATTERN = re.compile(r"S\d+$")
 
 
-def make_value_serializable(value: typing.Any):
+def make_value_serializable(value: typing.Any, encountered_items: list[typing.Any] = None):
+    if isinstance(value, (int, str, float, bool)):
+        return value
+
+    if isinstance(value, numpy.number):
+        return value.item()
+
+    if encountered_items is None:
+        encountered_items = []
+
+    try:
+        if not isinstance(value, numpy.ndarray) and value in encountered_items:
+            return None
+    except ValueError as e:
+        raise ValueError(f"Could not check to see if '{value}' (type={type(value)}) has been encountered in a {type(encountered_items)}: {e}") from e
+
+    if not isinstance(value, numpy.ndarray):
+        encountered_items.append(value)
+
+    if isinstance(value, bytes):
+        return value.decode()
+
+    if hasattr(value, 'name'):
+        if inspect.isroutine(value.name):
+            value = value.name()
+            make_value_serializable(value, encountered_items=encountered_items)
+        elif isinstance(value.name, str):
+            return value.name
+
     if isinstance(value, numpy.ndarray):
         value = value.tolist()
     elif hasattr(value, "item") and inspect.isroutine(value.item):
         value = value.item()
-    return value
+        return make_value_serializable(value, encountered_items=encountered_items)
+
+    if isinstance(value, generic.Mapping):
+        return {
+            key.decode() if isinstance(key, bytes) else str(key): make_value_serializable(value=val, encountered_items=encountered_items)
+            for key, val in value.items()
+        }
+    if isinstance(value, generic.Iterable) and not isinstance(value, (str, bytes)):
+        return [
+            make_value_serializable(value=item, encountered_items=encountered_items)
+            for item in value
+        ]
+    return str(value)
 
 
 class Variable(pydantic.BaseModel):
@@ -52,6 +94,10 @@ class Variable(pydantic.BaseModel):
                     key: make_value_serializable(value)
                     for key, value in variable.attrs.items()
                 },
+                encoding={
+                    key: make_value_serializable(value)
+                    for key, value in variable.encoding.items()
+                },
                 dimensions=[
                     dimensions[name]
                     for name in variable.dims
@@ -64,6 +110,8 @@ class Variable(pydantic.BaseModel):
 
             if 'units' in variable.attrs.keys():
                 kwargs['units'] = variable.attrs['units']
+            elif 'units' in variable.encoding.keys():
+                kwargs['units'] = variable.encoding['units']
 
             variables.append(
                 cls(**kwargs)
@@ -79,6 +127,7 @@ class Variable(pydantic.BaseModel):
     long_name: typing.Optional[str] = pydantic.Field(default=None)
     units: typing.Optional[str] = pydantic.Field(default=None)
     attributes: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default_factory=dict)
+    encoding: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default_factory=dict)
 
     def is_string(self) -> bool:
         return STRING_PATTERN.search(self.datatype.strip()) is not None

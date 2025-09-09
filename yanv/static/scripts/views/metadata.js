@@ -313,12 +313,6 @@ export class DatasetView {
             else if (/^\|S\d+/.test(variable.datatype)) {
                 datatype = "string ";
             }
-            else if (/^[Ii][Nn][Tt]\d+/.test(variable.datatype)) {
-                datatype = "int "
-            }
-            else if (/^[Ff][Ll][Oo][Aa][Tt]\d+/.test(variable.datatype)) {
-                datatype = "float "
-            }
             else {
                 datatype = `${variable.datatype} `;
             }
@@ -378,6 +372,29 @@ export class DatasetView {
             variableContents.appendChild(
                 this.#renderAttributesTable(variable.attributes, notGlobal, variableID)
             );
+
+            if (Object.keys(variable.encoding).length > 0) {
+                /**
+                 * @type {HTMLFieldSetElement}
+                 */
+                const encoding = createFieldSet(
+                    `${variableID}-encoding`,
+                    "Encoding",
+                    "Encoding"
+                );
+
+                /**
+                 * @type {HTMLTableElement}
+                 */
+                let encodingTable = createTable(
+                    `${variableID}-encoding-data`,
+                    `${variableID}-encoding-data`,
+                    variable.encoding
+                )
+
+                encoding.appendChild(encodingTable)
+                variableContents.appendChild(encoding)
+            }
 
             if (variable.examples.length > 0) {
                 /**

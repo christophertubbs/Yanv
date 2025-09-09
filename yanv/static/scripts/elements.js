@@ -74,8 +74,8 @@ export function createFieldSet(elementID, name, title) {
 /**
  * Creates a common type of table
  *
- * @param elementID {string} The ID for the table
- * @param name {string} The name for the type of data
+ * @param elementID {string} The ID for the table. Will be cleaned and used for DOM ids
+ * @param name {string} The name for the type of data. Will be cleaned and used in CSS class names
  * @param rows {({}|Object)[]|Object|{any: any}} A name-indexible mapping of values
  * @param columns {string[]?} The names of the columns to insert into rows
  * @param titles {{string: string}?} An optional mapping from column names to names that will be in the header
@@ -229,6 +229,12 @@ export function createTable(elementID, name, rows, columns, titles, includeHeade
 
             if (Object.keys(rowData).includes(column)) {
                 let value = rowData[column];
+
+                if (Array.isArray(value)) {
+                    value = value.join(', ')
+                } else if (value instanceof Object) {
+                    value = `{${Object.entries((kv) => `${kv[0]}=${kv[0]}`).join(', ')}}`
+                }
 
                 if (value !== null && value !== undefined && typeof value === 'string' && value.length > 100) {
                     value = value.replaceAll(",", ', ');

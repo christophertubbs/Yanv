@@ -70,6 +70,18 @@ def variable_is_temporal(variable: xarray.DataArray) -> bool:
     return False
 
 
+def has_value(value: typing.Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, (bytes, str, typing.Sequence)):
+        return bool(value)
+
+    try:
+        return not numpy.isnan(value)
+    except:
+        return False
+
+
 def get_random_values(
     variable: xarray.DataArray,
     size: int = None,
@@ -106,7 +118,7 @@ def get_random_values(
 
             for new_value in new_choices:
                 try:
-                    if new_value is not None and not numpy.isnan(new_value):
+                    if has_value(new_value):
                         values.add(new_value)
                 except Exception as e:
                     message: str = f"{type(e).__name__}: Ran into an error when trying to evaluate '{new_value}' for sample data from '{variable.name}': {e}"
