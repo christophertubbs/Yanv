@@ -66,8 +66,9 @@ export class Variable {
      */
     encoding
     examples
+    value
 
-    constructor ({name, datatype, count, dimensions, long_name, units, attributes, examples, encoding}) {
+    constructor ({name, datatype, count, dimensions, long_name, units, attributes, examples, encoding, value}) {
         this.name = name;
         this.datatype = datatype;
         this.count = count;
@@ -77,6 +78,7 @@ export class Variable {
         this.attributes = attributes
         this.examples = examples
         this.encoding = encoding;
+        this.value = value
     }
 }
 

@@ -105,6 +105,9 @@ class Variable(pydantic.BaseModel):
                 examples=examples
             )
 
+            if variable.shape == (1, ):
+                kwargs['value'] = str(variable.values[0])
+
             if 'long_name' in variable.attrs.keys():
                 kwargs['long_name'] = variable.attrs['long_name']
 
@@ -128,6 +131,7 @@ class Variable(pydantic.BaseModel):
     units: typing.Optional[str] = pydantic.Field(default=None)
     attributes: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default_factory=dict)
     encoding: typing.Optional[typing.Dict[str, typing.Any]] = pydantic.Field(default_factory=dict)
+    value: typing.Optional[typing.Any] = pydantic.Field(default=None)
 
     def is_string(self) -> bool:
         return STRING_PATTERN.search(self.datatype.strip()) is not None

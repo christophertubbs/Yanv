@@ -333,6 +333,23 @@ export class DatasetView {
             else if (Object.keys(variable.attributes).includes("unit")) {
                 variableName = `${variableName} => ${variable.attributes["unit"]}`
             }
+            else if (Object.keys(variable.encoding).includes("unit")) {
+                variableName = `${variableName} => ${variable.encoding['unit']}`
+            }
+            else if (Object.keys(variable.encoding).includes("units")) {
+                variableName = `${variableName} => ${variable.encoding['units']}`
+            }
+
+            if (variable.value !== null) {
+                if (typeof value === "string") {
+                    if (value.length > 0) {
+                        variableName = `${variableName} = ${variable.value}`
+                    }
+                }
+                else {
+                    variableName = `${variableName} = ${variable.value}`
+                }
+            }
 
             variableHeader.textContent = variableName;
             accordion.appendChild(variableHeader);
