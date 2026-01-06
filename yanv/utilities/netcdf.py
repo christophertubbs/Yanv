@@ -95,11 +95,20 @@ def get_random_values(
     :param messages: A queue of messages to return to the UI
     :return: A sequence of values from the variable
     """
+    import pandas
+    import math
+
     if size is None:
-        size = 1
+        size = min(math.prod(variable.sizes.values(), start=0), 10)
+
+    if not size:
+        return None
 
     if messages is None:
         messages = queue.Queue()
+
+    variable_frame: pandas.DataFrame = variable.to_dataframe(name=variable.name)
+
     failure_messages: typing.Set[str] = set()
 
     max_attempts = 25
@@ -111,10 +120,10 @@ def get_random_values(
     if dimension_count == 0:
         return None
     elif dimension_count == 1:
-        values = set(choice(variable.values, size=size))
+        values = set(variable_frame.sample(n=size, replace=False))
         attempts = 0
         while len(values) < size and attempts < max_attempts:
-            new_choices = choice(variable.values, size=size)
+            new_choices = variable_frame.sample(n=size, replace=False)
 
             for new_value in new_choices:
                 try:

@@ -151,13 +151,14 @@ export class YanvClient {
      */
     #handleMessage = (event) => {
         const payload = event.data;
-        console.log(payload);
+        //console.log(payload);
         let deserializedPayload
         try {
             deserializedPayload = JSON.parse(payload);
         } catch (e) {
             console.log("Could not deserialize message from server");
             console.error(e);
+            console.error(payload)
             return;
         }
 

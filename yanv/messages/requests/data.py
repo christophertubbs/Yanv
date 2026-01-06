@@ -12,6 +12,7 @@ from pydantic import field_validator
 
 from . import YanvRequest
 from .base import YanvDataRequest
+from yanv.messages.base import SpecificDataMessage
 from ...utilities import DEFAULT_ROW_COUNT
 
 _INDEX_TYPE = typing.Union[datetime, str, float, int]
@@ -24,6 +25,22 @@ class FileSelectionRequest(YanvRequest):
     operation: typing.Literal['load'] = pydantic.Field(description="Description stating that this should be loading data")
     path: pathlib.Path = pydantic.Field(description="The path to the requested file")
 
+
+class SampleRequest(YanvDataRequest):
+    """
+    A message asking for a sample of data
+    """
+    variable: str
+    operation: typing.Literal['sample'] = pydantic.Field(description="Description stating that this will be asking for data")
+    value_format: typing.Optional[str] = pydantic.Field(default=None, description="How values should be formatted")
+
+
+class DataDescriptionRequest(YanvDataRequest):
+    operation: typing.Literal['data_description'] = pydantic.Field(
+        description="Description stating that this will be asking for descriptive statistics about data"
+    )
+    variable: str
+    container_id: str
 
 class FilterRequest(YanvDataRequest):
     """

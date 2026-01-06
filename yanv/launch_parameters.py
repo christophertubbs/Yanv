@@ -46,7 +46,7 @@ class ApplicationArguments:
             help="The path to the index page"
         )
 
-        parameters = parser.parse_args(argv)
+        parameters = parser.parse_args(argv or None)
 
         self.__port = parameters.port
         self.__index_page = parameters.index_page

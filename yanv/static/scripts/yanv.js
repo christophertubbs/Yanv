@@ -1,5 +1,5 @@
 import {closeAllDialogs, openDialog} from "./utility.js";
-import {AcknowledgementResponse, DataResponse, OpenResponse} from "./responses.js";
+import {AcknowledgementResponse, DataResponse, OpenResponse, DataDescriptionResponse} from "./responses.js";
 import {DatasetView} from "./views/metadata.js";
 import {BooleanValue, ListValue, ListValueAction} from "./value.js";
 
@@ -115,6 +115,33 @@ function dataLoaded(response) {
     else {
         console.warn(`${response.data.name} has already been loaded`);
     }
+}
+
+/**
+ * Rendered summary statistics for a variable
+ * @param response {DataDescriptionResponse}
+ */
+function dataDescriptionLoaded(response) {
+    const standInID = `${response.container_id}-standin`
+    /**
+     *
+     * @type {HTMLDivElement}
+     */
+    const standinDiv = document.createElement("div")
+    standinDiv.id = standInID
+    standinDiv.style.backgroundColor = "magenta"
+
+    /**
+     *
+     * @type {HTMLHeadingElement}
+     */
+    const standinHeader = document.createElement("h1")
+    standinHeader.textContent = "This is some stand in text to show that this is being handled"
+
+    standinDiv.appendChild(standinHeader)
+
+    const container = document.getElementById(response.container_id)
+    container.appendChild(standinDiv)
 }
 
 function toggleContentLoadStatus() {

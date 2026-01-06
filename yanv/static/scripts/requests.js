@@ -135,6 +135,51 @@ export class DataRequest extends Request {
     }
 }
 
+export class DataDescriptionRequest extends Request {
+    /**
+     * @member {string}
+     */
+    data_id
+    /**
+     * @member {string}
+     */
+    variable
+
+    /**
+     * @member {string}
+     */
+    container_id
+
+    getOperation = () => {
+        return "data_description"
+    }
+
+    /**
+     *
+     * @param data_id
+     * @param variable
+     * @param container_id
+     */
+    constructor ({data_id, variable, container_id}) {
+        super()
+
+        this.data_id = data_id;
+        this.variable = variable
+        this.container_id = container_id
+    }
+
+    getRawPayload = () => {
+        const payload = {
+            operation: this.getOperation(),
+            data_id: this.data_id,
+            variable: this.variable,
+            container_id: this.container_id
+        }
+
+        return payload;
+    }
+}
+
 export class FilterRequest extends DataRequest {
     getOperation = () => {
         return "filter";
@@ -157,3 +202,4 @@ window.yanv.PageRequest = PageRequest;
 window.yanv.DataRequest = DataRequest;
 window.yanv.Filter = Filter;
 window.yanv.FileSelectionRequest = FileSelectionRequest;
+window.yanv.DataDescriptionRequest = DataDescriptionRequest;

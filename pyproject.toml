@@ -1,0 +1,89 @@
+[build-system]
+requires = [
+    "setuptools>=68",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "YANV"
+version = "0.1.0"
+description = "YANV: Yet another netcdf viewer"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+# Unpinned deps, per your request. Pin later once you stop experimenting.
+dependencies = [
+    "aiohttp",
+    "asgiref",
+    "attrs",
+    "certifi",
+    "cftime",
+    "charset-normalizer",
+    "contourpy",
+    "cycler",
+    "fonttools",
+    "frozenlist",
+    "h5netcdf",
+    "h5py",
+    "kiwisolver",
+    "matplotlib",
+    "multidict",
+    "narwhals",
+    "netCDF4",
+    "numpy",
+    "packaging",
+    "pandas",
+    "pillow",
+    "plotly",
+    "propcache",
+    "pydantic",
+    "python-dateutil",
+    "pytz",
+    "requests",
+    "scipy",
+    "simplejson",
+    "six",
+    "sqlparse",
+    "tornado",
+    "typing_extensions",
+    "tzdata",
+    "urllib3",
+    "xarray",
+    "yarl",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "types-requests",
+]
+
+[project.scripts]
+# `yanv ...` will call yanv/__main__.py:main()
+yanv = "yanv.__main__:main"
+
+[tool.setuptools]
+package-dir = { "" = "." }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["yanv*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 150
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true

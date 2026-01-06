@@ -26,3 +26,10 @@ class BaseBackend(typing.Protocol):
     @abc.abstractmethod
     def load(self, path: PathLike, *args, **kwargs) -> str:
         ...
+
+    @abc.abstractmethod
+    def clean(self) -> None:
+        """
+        Completely clear out records from the backend
+        """
+        pass

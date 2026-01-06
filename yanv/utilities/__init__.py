@@ -1,5 +1,5 @@
 """
-@TODO: Put a module wide description here
+Business-logic agnostic functionality
 """
 from .constants import DataType
 from .constants import Comparator

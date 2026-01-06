@@ -13,20 +13,15 @@ import pandas
 import xarray
 
 from yanv.cache.base import DatasetCache
-from yanv.cache.base import generate_data_id
 from yanv.model.dataset import Dataset
 
 _DEFAULT_FRAME_LIMIT = 4
 
 
 class InMemoryFrameCache(DatasetCache):
-    def get_information(self, key: str) -> typing.Optional[Dataset]:
-        dataset = self.get(key=key)
-        return Dataset.from_xarray(dataset) if dataset else None
-
-    def get_frame(self, key: str) -> typing.Optional[pandas.DataFrame]:
-        dataset = self.get(key)
-        return dataset.to_dataframe() if isinstance(dataset, xarray.Dataset) else None
+    """
+    XArray dataset cache that keeps data in memory
+    """
 
     def __init__(self, limit: int = None):
         if limit is None or limit <= 0:
@@ -37,7 +32,7 @@ class InMemoryFrameCache(DatasetCache):
         self._last_access_times: Counter[str] = Counter()
 
     def add(self, data: xarray.Dataset) -> str:
-        new_id = generate_data_id()
+        new_id: str = self._generate_data_id()
         self._datasets[new_id] = data
         self.touch_frame(new_id)
 
@@ -58,7 +53,13 @@ class InMemoryFrameCache(DatasetCache):
 
     def remove(self, data_id: str):
         if data_id in self._datasets.keys():
-            del self._datasets[data_id]
+            dataset: xarray.Dataset = self._datasets.pop(data_id)
+            try:
+                dataset.close()
+            except:
+                pass
+
+            del dataset
 
         if data_id in self._last_access_times:
             del self._last_access_times[data_id]
@@ -76,6 +77,11 @@ class InMemoryFrameCache(DatasetCache):
             self.remove(least_recent_id)
 
     def clear(self):
+        keys: list[str] = list(self._datasets.keys())
+
+        for key in keys:
+            self.remove(key)
+
         self._datasets = dict()
         self._last_access_times = Counter()
 

@@ -11,12 +11,19 @@ APPLICATION_DESCRIPTION: typing.Final[str] = os.environ.get(
     """Displays information about Netcdf-like files within your browser"""
 )
 DEFAULT_PORT: typing.Final[int] = int(os.environ.get("YANV_DEFAULT_PORT", 10324))
-ALLOW_REMOTE: typing.Final[bool] = os.environ.get("YANV_ALLOW_REMOTE", "no").lower() in ('t', 'true', 'y', 'yes', '1')
+ALLOW_REMOTE: typing.Final[bool] = os.environ.get("YANV_ALLOW_REMOTE", "no").lower() in ("t", "true", "y", "yes", "on", "1")
 INDEX_PAGE: typing.Final[str] = os.environ.get("YANV_INDEX_PAGE", "")
+DEBUG_MODE: typing.Final[bool] = os.environ.get("YANV_DEBUG", "false").lower() in ("t", "true", "y", "yes", "on", "1")
 
 if ALLOW_REMOTE:
     logging.warning(
         f"{APPLICATION_NAME} has been configured to allow remote connections. "
         f"Ensure https is enable or else risk internal file inspection from remote sources."
         f"Use at your own risk."
+    )
+
+if DEBUG_MODE:
+    logging.warning(
+        f"{APPLICATION_NAME} is running in DEBUG mode. "
+        f"Disable this if running in any sort of non-development environment"
     )

@@ -20,11 +20,17 @@ STRING_PATTERN = re.compile(r"S\d+$")
 
 
 def make_value_serializable(value: typing.Any, encountered_items: list[typing.Any] = None):
-    if isinstance(value, (int, str, float, bool)):
-        return value
+    if isinstance(value, (numpy.floating, float)) and numpy.isnan(value):
+        return "NaN"
 
     if isinstance(value, numpy.number):
         return value.item()
+
+    if isinstance(value, numpy.bool):
+        return bool(value)
+
+    if isinstance(value, (int, str, float, bool)):
+        return value
 
     if encountered_items is None:
         encountered_items = []
@@ -79,12 +85,14 @@ class Variable(pydantic.BaseModel):
 
         for variable_name in dataset.variables.keys():
             variable = dataset[variable_name]
-            random_values = get_random_values(variable=variable, size=5)
 
-            if random_values is not None:
-                examples = [str(value) for value in random_values]
-            else:
-                examples = []
+            # NOTE: Separating random sampling into a separate call since this can be wildly expensive
+            #random_values = get_random_values(variable=variable, size=5)
+
+            #if random_values is not None:
+            #    examples = [str(value) for value in random_values]
+            #else:
+            #    examples = []
 
             kwargs = dict(
                 name=variable_name,
@@ -101,8 +109,7 @@ class Variable(pydantic.BaseModel):
                 dimensions=[
                     dimensions[name]
                     for name in variable.dims
-                ],
-                examples=examples
+                ]
             )
 
             if variable.shape == (1, ):

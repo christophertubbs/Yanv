@@ -222,7 +222,6 @@ export class DatasetView {
         });
 
         this.#addTab(tabListSelector);
-        //tabContainer.tabs("refresh");
         yanv.refreshTabs()
 
         this.open();
@@ -413,24 +412,26 @@ export class DatasetView {
                 variableContents.appendChild(encoding)
             }
 
+            const summaryContainer = createFieldSet(
+                `${variableID}-summary`,
+                "Summary",
+                "Summary"
+            );
+
             if (variable.examples.length > 0) {
                 /**
                  * @type {HTMLFieldSetElement}
                  */
-                const exampleContainer = createFieldSet(
-                    `${variableID}-examples`,
-                    "Example Values",
-                    "Example Values"
-                );
                 let exampleList = createSimpleList(
                     `${variableID}-example-list`,
                     "Examples",
                     variable.examples
                 );
 
-                exampleContainer.appendChild(exampleList)
-                variableContents.appendChild(exampleContainer);
+                summaryContainer.appendChild(exampleList)
             }
+
+            variableContents.appendChild(summaryContainer);
 
             accordion.appendChild(variableContents);
         }
