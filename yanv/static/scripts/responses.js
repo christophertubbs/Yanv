@@ -3,7 +3,6 @@ import {Dataset} from "./model.js";
 export class OpenResponse {
     constructor (payload) {
         console.log("Connected")
-        console.log(payload)
     }
 }
 
@@ -82,6 +81,37 @@ export class DataDescriptionResponse {
     }
 }
 
+export class RenderResponse {
+    /**
+     * @member {string}
+     */
+    operation
+    /**
+     * @member {string}
+     */
+    messageID
+    /**
+     * @member {string}
+     */
+    container_id
+    /**
+     * @member {string}
+     */
+    markup
+    /**
+     * @member {"child"|"sibling"}
+     */
+    position
+
+    constructor({container_id, markup, position, messageID, operation}) {
+        this.container_id = container_id
+        this.markup = markup
+        this.position = position
+        this.messageID = messageID
+        this.operation = operation
+    }
+}
+
 export class DataResponse {
     operation
     messageID;
@@ -114,3 +144,4 @@ window.yanv.DataResponse = DataResponse;
 window.yanv.AcknowledgementResponse = AcknowledgementResponse;
 window.yanv.OpenResponse = OpenResponse;
 window.yanv.DataDescriptionResponse = DataDescriptionResponse;
+window.yanv.RenderResponse = RenderResponse;

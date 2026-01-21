@@ -78,7 +78,7 @@ class DatasetCache(abc.ABC):
             A pandas dataframe if there is a frame with that key
         """
         dataset = self.get(key)
-        return dataset.to_dataframe() if isinstance(dataset, xarray.Dataset) else None
+        return dataset.to_dataframe().reset_index() if isinstance(dataset, xarray.Dataset) else None
 
     @abc.abstractmethod
     def add(self, data: xarray.Dataset):

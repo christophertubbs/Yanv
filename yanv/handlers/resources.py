@@ -97,6 +97,14 @@ RESOURCE_ROUTES = [
 
 
 def register_resource_handlers(application: web.Application):
+    import jinja2
+    import aiohttp_jinja2
+
+    aiohttp_jinja2.setup(
+        app=application,
+        loader=jinja2.FileSystemLoader(RESOURCE_DIRECTORY / "templates")
+    )
+
     for route in RESOURCE_ROUTES:
         if not route.is_local_only():
             raise Exception(

@@ -418,6 +418,7 @@ export class DatasetView {
                 "Summary"
             );
 
+
             if (variable.examples.length > 0) {
                 /**
                  * @type {HTMLFieldSetElement}
@@ -430,6 +431,14 @@ export class DatasetView {
 
                 summaryContainer.appendChild(exampleList)
             }
+
+            const request = new yanv.DataDescriptionRequest({
+                data_id: this.data_id,
+                variable: variable.name,
+                container_id: summaryContainer.id
+            });
+
+            yanv.client.send(request);
 
             variableContents.appendChild(summaryContainer);
 

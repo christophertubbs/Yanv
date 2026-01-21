@@ -45,6 +45,10 @@ export class YanvClient {
     getID = () => {
         return this.#id;
     }
+
+    address = () => {
+        return this.#socket?.url;
+    }
     
     #handle = (operation, payload) => {
         if (Object.hasOwn(this.#payloadTypes, operation)) {

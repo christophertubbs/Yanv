@@ -1,5 +1,5 @@
 import {closeAllDialogs, openDialog} from "./utility.js";
-import {AcknowledgementResponse, DataResponse, OpenResponse, DataDescriptionResponse} from "./responses.js";
+import {AcknowledgementResponse, DataResponse, OpenResponse, DataDescriptionResponse, RenderResponse} from "./responses.js";
 import {DatasetView} from "./views/metadata.js";
 import {BooleanValue, ListValue, ListValueAction} from "./value.js";
 
@@ -45,15 +45,23 @@ async function initializeClient() {
 
     const client = new yanv.YanvClient();
 
-    client.addHandler("open", () => yanv.connected = true);
+    client.addHandler(
+        "open",
+        () => {
+            yanv.connected = true;
+            $("input#connection-path").val(yanv.client.address());
+        }
+    );
     client.addHandler("closed", () => yanv.connected = false);
     client.addHandler("load", dataLoaded);
     client.addHandler("error", handleError);
+    client.addHandler("render", markupReceived);
 
     client.registerPayloadType("connection_opened", OpenResponse);
     client.registerPayloadType("data", DataResponse);
     client.registerPayloadType("acknowledgement", AcknowledgementResponse);
     client.registerPayloadType("load", DataResponse)
+    client.registerPayloadType("render", RenderResponse);
 
     Object.defineProperty(
         yanv,
@@ -114,6 +122,26 @@ function dataLoaded(response) {
     }
     else {
         console.warn(`${response.data.name} has already been loaded`);
+    }
+}
+
+/**
+ * Handler for when markup was sent by the server
+ * @param {RenderResponse} response
+ */
+function markupReceived(response) {
+    let elements = $(`#${response.container_id}`);
+
+    if (elements.length === 0) {
+        throw new Error(
+            `No HTML elements could be found with the ID '${response.container_id}'. The markup from message ${response.messageID} cannot be rendered.`
+        );
+    }
+
+    if (response.position === "child") {
+        elements.append(response.markup);
+    } else {
+        elements.insertAfter(response.markup);
     }
 }
 
@@ -199,6 +227,8 @@ async function handleError(payload) {
     $("#failed-message-id").text(payload['message_id']);
     $("#error-message").text(payload['error_message']);
     openDialog("#error-dialog");
+    console.error(payload['error_message']);
+    console.error(payload);
 }
 
 async function getData(path) {

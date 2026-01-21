@@ -12,7 +12,8 @@ if __name__.endswith("__main__"):
     logging.basicConfig(
         level=logging.INFO,
         format="[%(asctime)s] %(levelname)s %(name)s %(lineno)d: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S%z"
+        datefmt="%Y-%m-%d %H:%M:%S%z",
+        force=True
     )
     aiohttp_logger: logging.Logger = logging.getLogger("aiohttp")
     aiohttp_logger.setLevel(logging.WARNING)

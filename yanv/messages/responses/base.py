@@ -1,5 +1,5 @@
 """
-@TODO: Put a module wide description here
+Defines basic response classes
 """
 from __future__ import annotations
 
@@ -18,6 +18,13 @@ class YanvResponse(YanvMessage):
 
 class OpenResponse(YanvResponse):
     operation: typing.Literal['connection_opened'] = pydantic.Field(default="connection_opened")
+
+
+class RenderResponse(YanvResponse):
+    markup: str
+    container_id: str
+    operation: typing.Literal['render'] = pydantic.Field(default="render")
+    position: typing.Literal["child", "sibling"] = pydantic.Field(default="child")
 
 
 class AcknowledgementResponse(YanvResponse):

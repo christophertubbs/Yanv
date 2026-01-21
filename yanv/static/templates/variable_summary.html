@@ -1,0 +1,94 @@
+<table id="{{ data_id }}-{{ variable }}-summary-table" data-data_id="{{ data_id }}" data-variable="{{ variable }}"
+       class="yanv-table {{ variable }}-summary variable-summary-table summary-header yanv-attributes-table">
+    <thead class="variable-summary-table-header summary-table-header">
+        <tr>
+            <th>Statistic</th>
+            <th>Value</th>
+        </tr>
+    </thead>
+    <tbody class="yanv-table-body yanv-variable-attributes-table-body">
+        {% if minimum is not none and minimum != "NaN"  %}
+        <tr data-value="{{ minimum }}" data-variable="{{ variable }}" data-statistic="minimum" id="{{ data_id }}-{{ variable }}-minimum-row"
+            class="yanv-variable-attributes-row yanv-table-row variable-minimum variable-statistics-row {{ variable }}-summary-row">
+            <th class="yanv-table-cell variable-summary-statistics-label">Minimum</th>
+            <td id="{{ data_id }}-{{ variable }}-minimum" class="yanv-table-cell yanv-value-table-cell variable-statistics-minimum variable-summary-value"
+                data-statistic="minimum" data-value="{{ minimum }}">
+                {{ minimum }}
+            </td>
+        </tr>
+        {% endif %}
+        {% if maximum is not none and maximum != "NaN"  %}
+        <tr data-value="{{ maximum }}" data-variable="{{ variable }}" data-statistic="maximum" id="{{ data_id }}-{{ variable }}-maximum-row"
+            class="yanv-variable-attributes-row yanv-table-row variable-maximum variable-statistics-row {{ variable }}-summary-row">
+            <th class="yanv-table-cell variable-summary-statistics-label">
+                Maximum
+            </th>
+            <td id="{{ data_id }}-{{ variable }}-maximum" class="yanv-table-cell yanv-value-table-cell variable-statistics-maximum variable-summary-value"
+                data-statistic="maximum" data-value="{{ maximum }}">
+                {{ maximum }}
+            </td>
+        </tr>
+        {% endif %}
+        {% if mean is not none and mean != "NaN"  %}
+        <tr data-value="{{ mean }}" data-variable="{{ variable }}" data-statistic="mean" id="{{ data_id }}-{{ variable }}-mean-row"
+            class="yanv-variable-attributes-row yanv-table-row variable-mean variable-statistics-row {{ variable }}-summary-row">
+            <th class="yanv-table-cell variable-summary-statistics-label">
+                Mean
+            </th>
+            <td id="{{ data_id }}-{{ variable }}-mean" class="yanv-table-cell yanv-value-table-cell variable-statistics-mean variable-summary-value"
+                data-statistic="mean" data-value="{{ mean }}">
+                {{ mean }}
+            </td>
+        </tr>
+        {% endif %}
+        {% if median is not none and median != "NaN"  %}
+        <tr data-value="{{ median }}" data-variable="{{ variable }}" data-statistic="median" id="{{ data_id }}-{{ variable }}-median-row"
+            class="yanv-variable-attributes-row yanv-table-row variable-median variable-statistics-row {{ variable }}-summary-row">
+            <th class="yanv-table-cell variable-summary-statistics-label">
+                Median
+            </th>
+            <td id="{{ data_id }}-{{ variable }}-median" class="yanv-table-cell yanv-value-table-cell variable-statistics-median variable-summary-value"
+                data-statistic="median" data-value="{{ median }}">
+                {{ median }}
+            </td>
+        </tr>
+        {% endif %}
+        {% if std is not none and std != "NaN" %}
+        <tr data-value="{{ std }}" data-variable="{{ std }}" data-statistic="std" id="{{ data_id }}-{{ variable }}-std-row"
+            class="yanv-variable-attributes-row yanv-table-row variable-std variable-statistics-row {{ variable }}-summary-row">
+            <th class="yanv-table-cell variable-summary-statistics-label">Standard Deviation</th>
+            <td id="{{ data_id }}-{{ variable }}-std" class="yanv-table-cell yanv-value-table-cell variable-statistics-std variable-summary-value"
+                data-statistic="std" data-value="{{ std }}">
+                {{ std }}
+            </td>
+        </tr>
+        {% endif %}
+        {% if samples %}
+            <tr class="yanv-variable-attributes-row yanv-table-row " id="{{ data_id }}-{{ variable }}-sample-header-row"
+                data-data_id="{{ data_id }}" data-variable="{{ variable }}">
+                <th class="yanv-table-cell variable-summary-statistics-label">Samples</th>
+            </tr>
+            {% for sample in samples %}
+                <tr id="{{ data_id }}-{{ variable }}-sample-{{ loop.index0 }}" data-index="{{ loop.index0 }}"
+                    data-variable="{{ variable }}" data-data_id="{{ data_id }}" data-value="{{ sample }}"
+                    class="yanv-variable-attributes-row yanv-table-row sample-row {{ variable }}-sample">
+                    <th></th>
+                    <td id="{{ data_id }}-{{ variable }}-{{ sample }}-{{ loop.index0 }}" data-index="{{ loop.index0 }}"
+                        data-variable="{{ variable }}" data-data_id="{{ data_id }}" data-value="{{ sample }}"
+                        class="yanv-table-cell yanv-value-table-cell variable-statistics-sample variable-summary-value" colspan="2">
+                        {{ sample }}
+                    </td>
+                </tr>
+            {% endfor %}
+        {% endif %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <th id="{{ data_id }}-{{ variable }}-footer-count" data-count="{{ count }}"
+                data-data_id="{{ data_id }}" data-variable="{{ variable }}" class="variable-count">
+                Count:
+            </th>
+            <td>{{ count }}</td>
+        </tr>
+    </tfoot>
+</table>

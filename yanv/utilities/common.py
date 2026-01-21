@@ -3,6 +3,7 @@
 """
 from __future__ import annotations
 
+import abc
 import logging
 import os
 import typing
@@ -63,21 +64,53 @@ def get_subclasses(base: typing.Type[_CLASS_TYPE]) -> typing.List[typing.Type[_C
     Returns:
         All implemented subclasses of a specified types
     """
-    concrete_classes = [
-        subclass
-        for subclass in base.__subclasses__()
-        if not inspect.isabstract(subclass)
-    ]
+    concrete_classes: list[typing.Type[_CLASS_TYPE]] = []
 
     for subclass in base.__subclasses__():
+        if abc.ABC not in subclass.__bases__:
+            concrete_classes.append(subclass)
         concrete_classes.extend([
             cls
             for cls in get_subclasses(subclass)
             if cls not in concrete_classes
-               and not inspect.isabstract(cls)
         ])
 
-    return concrete_classes
+    return sorted(concrete_classes, key=lambda klazz: len(inspect.getmro(klazz)), reverse=True)
+
+
+def get_mro_length(klazz: typing.Type) -> int:
+    """
+    Get the total number of items in the given type's mro list recursively
+
+    Example:
+        >>> inspect.getmro(logging.Logger)
+        (<class 'logging.Logger'>, <class 'logging.Filterer'>, <class 'object'>)
+        >>> inspect.getmro(logging.Filterer)
+        (<class 'logging.Filterer'>, <class 'object'>)
+        >> get_mro_length(logging.Filterer)
+        1
+        >> get_mro_length(logging.Logger)
+        3
+
+    get_mro_length(logging.Filterer) becomes the length of [object] and get_mro_length(logging.Logger) becomes the
+    length of [*(logging.Filterer, object), object]
+
+    Args:
+        klazz: The class to determine the mro length from
+
+    Returns:
+        The total number of elements that this type and its parents inherit from
+    """
+    total: int = 0
+
+    for entry in inspect.getmro(klazz):
+        if entry is klazz:
+            continue
+        total += 1
+        if entry is not object:
+            total += get_mro_length(entry)
+
+    return total
 
 
 def get_html_response_from_text(

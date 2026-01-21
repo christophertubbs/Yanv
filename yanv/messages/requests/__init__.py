@@ -10,6 +10,8 @@ from .base import YanvRequest
 
 from .data import FileSelectionRequest
 from .data import PageRequest
+from .data import DataDescriptionRequest
+
 from ...utilities.common import get_subclasses
 
 
@@ -18,4 +20,4 @@ def get_message_types() -> typing.Tuple[typing.Type[YanvRequest], ...]:
 
 
 class MasterRequest(pydantic.BaseModel):
-    request: typing.Union[get_message_types()]
+    request: typing.Annotated[typing.Union[get_message_types()], pydantic.Field(discriminator="operation")]

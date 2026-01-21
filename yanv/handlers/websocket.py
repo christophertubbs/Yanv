@@ -11,8 +11,10 @@ import typing
 import pathlib
 import os
 
+import numpy.random
 from aiohttp import WSMessage
 from aiohttp import web
+from aiohttp_jinja2 import render_string
 
 from yanv.messages.responses import invalid_message_response
 from yanv.messages.responses.error import missing_data_response
@@ -20,6 +22,7 @@ from yanv.utilities.common import local_only
 from yanv.messages.base import YanvMessage
 from yanv.messages.requests import FileSelectionRequest
 from yanv.messages.requests.data import DataDescriptionRequest
+from yanv.messages.responses.base import RenderResponse
 from yanv.messages.requests import MasterRequest
 from yanv.messages.requests import YanvRequest
 from yanv.messages.responses import ErrorResponse
@@ -65,7 +68,7 @@ def load_file(request: FileSelectionRequest, state: SocketState) -> YanvDataResp
     return response
 
 
-def describe_data(request: DataDescriptionRequest, state: SocketState) -> DataDescriptionResponse | ErrorResponse:
+def describe_data(request: DataDescriptionRequest, state: SocketState) -> RenderResponse | ErrorResponse:
     """
     Read information from a variable and generate a description of it
 
@@ -77,76 +80,127 @@ def describe_data(request: DataDescriptionRequest, state: SocketState) -> DataDe
         A response bearing important information, such as summary statistics
     """
     import pandas
+    import xarray
+    from numpy import dtypes
+    import numpy
 
-    dataframe: pandas.DataFrame | None = state.backend.cache.get_frame(key=request.data_id)
+    dataset: xarray.Dataset | None = state.backend.cache.get(key=request.data_id)
 
-    if dataframe is None:
+    if dataset is None:
         return missing_data_response(data_id=request.data_id)
 
-    if request.variable not in dataframe.columns:
+    if request.variable not in dataset:
         return ErrorResponse(
             message_id=request.message_id,
             error_message=f"There is no '{request.variable}' variable within dataset {request.data_id}",
         )
 
-    data: pandas.Series = dataframe[request.variable]
+    data: xarray.DataArray = dataset[request.variable]
+
+    if 'valid_range' in data.attrs and isinstance(data.attrs['valid_range'], typing.Iterable):
+        try:
+            lower_limit = min(data.attrs['valid_range'])
+            upper_limit = max(data.attrs['valid_range'])
+            data = data.where((lower_limit < data) & (data < upper_limit), drop=True)
+        except Exception as e:
+            LOGGER.error(f"Could not constrain '{request.variable}' to its valid range: {e}")
+
+    context: dict[str, typing.Optional[str | typing.Sequence[str]]] = {
+        "minimum": "NaN",
+        "maximum": "NaN",
+        "mean": "NaN",
+        "median": "NaN",
+        "samples": [],
+        "count": str(data.size),
+        "std": "NaN",
+        "data_id": request.data_id,
+        "message_id": request.message_id,
+        "variable": request.variable,
+    }
+
+    if not isinstance(data.dtype, (dtypes.ObjectDType, dtypes.BytesDType, dtypes.StrDType)) and len(data.shape) > 0:
+        try:
+            minimum = data.min().values
+
+            if issubclass(minimum.dtype.type, float):
+                minimum = f"{minimum:.2f}"
+            else:
+                minimum = str(minimum)
+
+            context['minimum'] = minimum
+        except Exception as e:
+            LOGGER.error(f"Could not calculate the minimum of '{data.dtype} {request.variable}': {e}")
+
+    if not isinstance(data.dtype, (dtypes.ObjectDType, dtypes.BytesDType, dtypes.StrDType)) and len(data.shape) > 0:
+        try:
+            maximum = data.max().values
+
+            if issubclass(maximum.dtype.type, float):
+                maximum = f"{maximum:.2f}"
+            else:
+                maximum = str(maximum)
+            context['maximum'] = maximum
+        except Exception as e:
+            LOGGER.error(f"Could not calculate the maximum of '{data.dtype} {request.variable}': {e}")
+
+    if not isinstance(data.dtype, (dtypes.ObjectDType, dtypes.BytesDType, dtypes.StrDType, dtypes.DateTime64DType)) and len(data.shape) > 0:
+        try:
+            std = data.std().values
+
+            if issubclass(std.dtype.type, float):
+                std = f"{std:.2f}"
+            else:
+                std = str(std)
+            context['std'] = std
+        except Exception as e:
+            LOGGER.error(f"Could not calculate the standard deviation of '{data.dtype} {request.variable}': {e}")
+
+    if not isinstance(data.dtype, (dtypes.ObjectDType, dtypes.BytesDType, dtypes.StrDType)) and len(data.shape) > 0:
+        try:
+            mean = data.mean().values
+
+            if issubclass(mean.dtype.type, float):
+                mean = f"{mean:.2f}"
+            else:
+                mean = str(mean)
+            context['mean'] = mean
+        except Exception as e:
+            LOGGER.error(f"Could not calculate the mean of '{data.dtype} {request.variable}': {e}")
+
+    if not isinstance(data.dtype, (dtypes.ObjectDType, dtypes.BytesDType, dtypes.StrDType, dtypes.DateTime64DType)) and len(data.shape) > 0:
+        try:
+            median = data.median().values
+
+            if issubclass(median.dtype.type, float):
+                median = f"{median:.2f}"
+            else:
+                median = str(median)
+            context['median'] = median
+        except Exception as e:
+            LOGGER.error(f"Could not calculate the median of '{data.dtype} {request.variable}': {e}")
 
     try:
-        minimum = str(data.min())
-    except Exception as e:
-        LOGGER.error(f"Could not calculate the minimum of '{data.dtype} {request.variable}': {e}")
-        minimum = None
-
-    try:
-        maximum = str(data.max())
-    except Exception as e:
-        LOGGER.error(f"Could not calculate the maximum of '{data.dtype} {request.variable}': {e}")
-        maximum = None
-
-    try:
-        std = str(data.std())
-    except Exception as e:
-        LOGGER.error(f"Could not calculate the standard deviation of '{data.dtype} {request.variable}': {e}")
-        std = None
-
-    try:
-        mean = str(data.mean())
-    except Exception as e:
-        LOGGER.error(f"Could not calculate the mean of '{data.dtype} {request.variable}': {e}")
-        mean = None
-
-    try:
-        median = str(data.median())
-    except Exception as e:
-        LOGGER.error(f"Could not calculate the median of '{data.dtype} {request.variable}': {e}")
-        median = None
-
-    count = int(data.count())
-
-    try:
-        non_nan_data: pandas.Series = data[data.notna()]
-        if non_nan_data.empty:
-            sample = ["NaN"]
-        else:
-            sample_count: int = min(5, non_nan_data.count())
-            sample = [str(value) for value in non_nan_data.sample(n=sample_count, replace=False)]
+        non_nan_data: xarray.DataArray = data.where(data.notnull(), drop=True)
+        if non_nan_data.size > 0:
+            sample_count: int = min(5, non_nan_data.size)
+            sample = [
+                f"{value:.2f}" if issubclass(non_nan_data.dtype.type, float) else str(value)
+                for value in numpy.random.choice(non_nan_data.values.ravel(), size=sample_count, replace=False)
+            ]
+            context['samples'] = sample
     except Exception as e:
         LOGGER.error(f"Could not sample '{data.dtype} {request.variable}': {e}")
-        sample = []
 
-    response: DataDescriptionResponse = DataDescriptionResponse(
-        operation=request.operation,
+    markup: str = render_string(
+        template_name="variable_summary.html",
+        request=state.request,
+        context=context
+    )
+
+    response: RenderResponse = RenderResponse(
         message_id=request.message_id,
+        markup=markup,
         container_id=request.container_id,
-        data_id=request.data_id,
-        variable=request.variable,
-        maximum=maximum,
-        minimum=minimum,
-        median=median,
-        mean=mean,
-        samples=sample,
-        std=std,
-        count=count
     )
 
     return response
@@ -169,9 +223,12 @@ def default_message_handler(request: YanvRequest, state: SocketState) -> RESPONS
     Returns:
         A generic response acknowledging communication
     """
+    message_type: str = type(request).__qualname__
+    message: str = f"There are no handlers for the '{request.operation}' operation requested from a {message_type}"
+    LOGGER.error(message, stack_info=True)
     return ErrorResponse(
         error_message=f"There are no handlers for the '{request.operation}' operation",
-        message_type=type(request),
+        message_type=message_type,
         message_id=request.message_id
     )
 
@@ -265,7 +322,7 @@ async def socket_handler(request: web.Request) -> web.WebSocketResponse:
     await connection.prepare(request=request)
 
     # Create a container for state information that will hold application state for this socket connection
-    state = SocketState()
+    state = SocketState(_request=request)
 
     LOGGER.info(f"Connected to socket {connection_id} from {request.remote}")
 
